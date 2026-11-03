@@ -1,0 +1,504 @@
+:root {
+  color-scheme: light;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-synthesis: none;
+  color: #263c37;
+  background: #dce6df;
+  --ink: #263c37;
+  --muted: #63736e;
+  --line: #3f575244;
+  --accent: #ce4d26;
+  --paper: #e2eae2;
+  --active: #ce4d26;
+  --edge: 3.9vw;
+}
+* { box-sizing: border-box; }
+body { margin: 0; overflow: hidden; }
+button, input { font: inherit; }
+button {
+  cursor: pointer;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  transition: color .18s, opacity .18s;
+}
+button:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+}
+button:hover { color: var(--accent); }
+svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  width: 22px;
+  height: 22px;
+  flex: none;
+}
+#world, #world canvas {
+  display: block;
+  width: 100vw;
+  height: 100dvh;
+  touch-action: none;
+}
+#world { position: fixed; inset: 0; }
+.ui { position: fixed; z-index: 3; transition: opacity .3s; }
+.masthead { top: 33px; left: var(--edge); pointer-events: none; }
+.masthead h1 {
+  display: flex;
+  align-items: baseline;
+  margin: 0;
+  color: var(--ink);
+  font-size: clamp(44px, 5.3vw, 76px);
+  font-weight: 850;
+  letter-spacing: -.045em;
+  line-height: 1.05;
+}
+.brand-seal {
+  display: inline-block;
+  width: .16em;
+  height: .16em;
+  margin-left: .1em;
+  background: var(--accent);
+}
+.top-actions {
+  top: 52px;
+  right: var(--edge);
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+.icon-button, .sound-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 35px;
+  padding: 0;
+  white-space: nowrap;
+  font-size: 13px;
+}
+.sound-controls { display: flex; align-items: center; gap: 10px; }
+.sound-controls input { width: 44px; opacity: .65; }
+.sound-controls:has([aria-pressed="false"]) input { opacity: .35; }
+.side-left, .side-right { top: 21%; pointer-events: none; }
+.side-left {
+  left: var(--edge); width: 166px;
+  bottom: max(42px, env(safe-area-inset-bottom));
+  display: grid; grid-template-rows: 400px auto; align-content: start; gap: 32px;
+}
+/* Weather owns its natural content height. Sharing the seasonal fixed row
+   left a large empty slot between the two right-hand modules. */
+.side-right {
+  right: var(--edge); width: 90px; bottom: auto;
+  display: flex; flex-direction: column; gap: 24px;
+}
+.side-left section, .side-right section { pointer-events: none; }
+/* A continuous sky orbit may cross an empty part of a rail. Only the
+   actual controls own input, so the invisible section box cannot grab it. */
+.side-left button, .side-left input, .side-right button, .side-right input { pointer-events: auto; }
+.rail-heading {
+  margin: 0 0 18px;
+  color: var(--ink);
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: .1em;
+}
+.season-tabs { display: flex; flex-direction: column; gap: 20px; }
+.season-tabs button {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  width: fit-content;
+  min-width: 90px;
+  padding: 0 10px 8px 0;
+  color: #63736ec7;
+  line-height: 1;
+}
+.season-tabs button small {
+  width: 14px;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.season-tabs button > span {
+  font-family: "Songti SC", "Noto Serif SC", serif;
+  font-size: 45px;
+  font-weight: 600;
+  line-height: 1.05;
+}
+.season-tabs button.active { color: var(--ink); }
+.season-tabs button.active::after {
+  content: "";
+  position: absolute;
+  left: 25px;
+  bottom: 0;
+  width: 28px;
+  height: 3px;
+  background: var(--accent);
+}
+/* A second node can be marked while the scene blends towards it. */
+.season-tabs button.approaching, .season-tabs button.transitioning {
+  color: var(--accent);
+}
+.season-cycle { margin-top: 20px; width: 142px; }
+.cycle-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 29px;
+  padding: 0;
+  color: var(--ink);
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+.cycle-button svg { width: 14px; height: 14px; }
+.cycle-button[aria-pressed="true"] { color: var(--accent); }
+.pause-icon { display: none; }
+[aria-pressed="true"] > .play-icon { display: none; }
+[aria-pressed="true"] > .pause-icon { display: block; }
+#cycle-status {
+  display: block;
+  margin: 3px 0 10px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+#cycle-progress {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 3px;
+  border: 0;
+  border-radius: 0;
+  background: var(--line);
+  overflow: hidden;
+}
+#cycle-progress::-webkit-progress-bar { background: var(--line); }
+#cycle-progress::-webkit-progress-value { background: var(--accent); }
+#cycle-progress::-moz-progress-bar { background: var(--accent); }
+.day-panel { width: 166px; }
+.day-panel .rail-heading { margin-bottom: 13px; }
+#clock-label {
+  display: block;
+  font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
+  font-size: 37px;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -2px;
+  font-variant-numeric: tabular-nums;
+}
+.day-control { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.day-control input { width: 132px; }
+.day-control button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--muted);
+}
+.day-control button svg { width: 15px; height: 15px; }
+.day-control button[aria-pressed="true"] { color: var(--accent); }
+.day-control button[aria-pressed="true"] > .play-icon { display: none; }
+.day-stops {
+  display: flex;
+  justify-content: space-between;
+  width: 132px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.weather-tools, .tools { display: flex; flex-direction: column; gap: 6px; }
+.weather-tools button, .tools button, .wind-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: fit-content;
+  min-width: 72px;
+  min-height: 31px;
+  padding: 0;
+  font-size: 14px;
+  white-space: nowrap;
+  line-height: 1;
+}
+.weather-tools button.active, .weather-tools button[aria-pressed="true"] {
+  color: var(--accent);
+}
+.weather-tools button.active::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 13px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.interaction-rail .rail-heading { margin-bottom: 12px; }
+.wind-toggle { margin-bottom: 6px; font-size: 12px; gap: 11px; }
+.wind-toggle[aria-pressed="true"] { color: var(--accent); }
+.tools button { color: var(--muted); font-size: 12px; gap: 11px; }
+.tools button.active { color: var(--accent); }
+.tools button.active::after {
+  content: "";
+  position: absolute;
+  bottom: 2px;
+  left: 32px;
+  width: 22px;
+  height: 2px;
+  background: var(--accent);
+}
+.tools svg, .wind-toggle svg { width: 22px; height: 22px; }
+input[type="range"] {
+  appearance: none;
+  height: 2px;
+  border-radius: 0;
+  background: #71878088;
+  cursor: pointer;
+  margin: 0;
+  flex: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.sound-controls input[type="range"]::-webkit-slider-thumb { width: 7px; height: 7px; background: var(--ink); }
+.sound-controls input[type="range"]::-moz-range-thumb { width: 7px; height: 7px; background: var(--ink); }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.hidden { display: none !important; }
+body.ui-hidden .ui { opacity: 0; pointer-events: none; }
+body.ui-hidden .ui * { pointer-events: none !important; }
+#loading {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 75% 15%, #f2f4e9 0%, #dce7df 47%, #c6d6d0 100%);
+  color: var(--ink);
+}
+#loading.ready { opacity: 0; pointer-events: none; transition: opacity .35s; }
+.loading-card { width: 246px; transform: translateY(-12px); }
+.loading-card h2 { margin: 0 0 40px; font-size: 40px; font-weight: 850; letter-spacing: -1px; line-height: 1; }
+.loading-progress-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; color: var(--muted); font-size: 11px; letter-spacing: 1px; }
+.loading-progress-row #loading-percent { color: var(--ink); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+#loading-progress { display: block; appearance: none; width: 100%; height: 2px; border: 0; border-radius: 0; overflow: hidden; background: #63736e30; }
+#loading-progress::-webkit-progress-bar { background: #63736e30; }
+#loading-progress::-webkit-progress-value { background: var(--accent); transition: width .2s; }
+#loading-progress::-moz-progress-bar { background: var(--accent); }
+#failure { position: fixed; z-index: 30; inset: 20%; padding: 32px; line-height: 1.9; color: var(--ink); background: var(--paper); border: 1px solid var(--line); overflow: auto; }
+#failure a { color: var(--accent); }
+@media (min-width: 1440px) and (min-height: 1000px) {
+  .top-actions { top: 61px; }
+  .side-left { top: 21%; gap: 38px; grid-template-rows: 438px auto; }
+  .side-right { gap: 24px; }
+  .season-tabs { gap: 24px; }
+  .season-tabs button > span { font-size: 51px; }
+  .weather-tools, .tools { gap: 9px; }
+  .weather-tools button { font-size: 15px; }
+  #clock-label { font-size: 42px; }
+}
+@media (max-width: 1000px) {
+  :root { --edge: 26px; }
+  .masthead { top: 28px; }
+  .masthead h1 { font-size: 46px; }
+  .top-actions { top: 35px; gap: 15px; }
+  .icon-button, .sound-toggle { font-size: 11px; gap: 6px; }
+  .top-actions svg { width: 20px; height: 20px; }
+  .sound-controls { gap: 7px; }
+  .sound-controls input { width: 35px; }
+  .side-left { width: 145px; }
+  .side-right { width: 82px; }
+  /* The compact rail can cross foliage on a narrow canvas. Keep its paper
+     support local and translucent; its geometry and control alignment stay. */
+  .side-right section {
+    background: #e2eae2a8;
+    box-shadow: 0 0 10px 6px #e2eae240;
+    border-radius: 2px;
+  }
+  .rail-heading { font-size: 16px; }
+  .day-panel { width: 145px; }
+  .day-control { gap: 7px; }
+  .day-control input, .day-stops { width: 114px; }
+  #clock-label { font-size: 33px; }
+  .season-cycle { width: 128px; }
+}
+@media (max-height: 880px) {
+  .side-left { top: 20%; gap: 23px; bottom: 24px; grid-template-rows: 320px auto; }
+  .side-right { top: 20%; gap: 22px; }
+  .rail-heading { margin-bottom: 12px; font-size: 15px; }
+  .season-tabs { gap: 12px; }
+  .season-tabs button > span { font-size: 37px; }
+  .season-tabs button { padding-bottom: 6px; }
+  .season-tabs button.active::after { height: 2px; width: 24px; }
+  .season-cycle { margin-top: 13px; }
+  #cycle-status { margin-bottom: 8px; }
+  .weather-tools, .tools { gap: 4px; }
+  .weather-tools button, .tools button, .wind-toggle { min-height: 28px; }
+  .day-panel .rail-heading { margin-bottom: 10px; }
+  #clock-label { font-size: 31px; }
+}
+@media (max-width: 760px) {
+  .masthead h1 { font-size: 40px; }
+  .top-actions { gap: 14px; }
+  .top-actions .icon-button { width: 25px; justify-content: center; }
+  .top-actions .icon-button > span { display: none; }
+}
+@media (max-width: 600px) {
+  :root { --edge: 20px; }
+  .masthead { top: 22px; }
+  .masthead h1 { font-size: 38px; }
+  .top-actions { top: 76px; left: var(--edge); right: var(--edge); gap: 12px; justify-content: space-between; }
+  .top-actions svg { width: 19px; height: 19px; }
+  .icon-button, .sound-toggle { min-height: 32px; font-size: 10px; }
+  .sound-controls { gap: 9px; }
+  .sound-controls input { width: 40px; }
+  .side-left { top: 143px; bottom: max(25px, env(safe-area-inset-bottom)); gap: 26px; grid-template-rows: 330px auto; }
+  .side-right { top: 143px; gap: 22px; }
+  .side-left { width: 128px; }
+  .side-right { width: 77px; }
+  .rail-heading { margin-bottom: 14px; font-size: 14px; }
+  .season-tabs { gap: 16px; }
+  .season-tabs button { gap: 8px; min-width: 66px; padding-bottom: 7px; }
+  .season-tabs button > span { font-size: 35px; }
+  .season-tabs button small { font-size: 9px; width: 12px; }
+  .season-tabs button.active::after { left: 20px; width: 22px; height: 2px; }
+  .season-cycle { width: 116px; margin-top: 17px; }
+  .cycle-button { font-size: 11px; }
+  #cycle-status { font-size: 9px; }
+  .day-panel { width: 128px; }
+  .day-panel .rail-heading { margin-bottom: 12px; }
+  #clock-label { font-size: 28px; letter-spacing: -1.5px; }
+  .day-control { gap: 5px; margin-top: 9px; }
+  .day-control input, .day-stops { width: 99px; }
+  .day-stops { font-size: 9px; }
+  .weather-tools, .tools { gap: 4px; }
+  .weather-tools button, .tools button, .wind-toggle { min-width: 65px; min-height: 29px; gap: 8px; font-size: 12px; }
+  .weather-tools button svg, .tools button svg, .wind-toggle svg { width: 19px; height: 19px; }
+  .weather-tools button.active::after { width: 4px; height: 4px; top: 12px; right: 0; }
+  .interaction-rail .rail-heading { margin-bottom: 10px; }
+  .wind-toggle, .tools button { font-size: 11px; }
+  .tools button.active::after { left: 27px; width: 20px; }
+  .loading-card { width: 220px; }
+  .loading-card h2 { font-size: 36px; }
+  .loading-progress-row { font-size: 10px; }
+  #failure { inset: 13%; padding: 22px; }
+}
+@media (max-width: 359px) {
+  :root { --edge: 16px; }
+  .masthead h1 { font-size: 34px; }
+  .top-actions { top: 68px; }
+  .side-left { top: 129px; gap: 22px; grid-template-rows: 302px auto; }
+  .side-right { top: 129px; gap: 20px; }
+  .side-left { width: 111px; }
+  .side-right { width: 70px; }
+  .season-tabs { gap: 12px; }
+  .season-tabs button > span { font-size: 31px; }
+  .season-cycle { width: 105px; }
+  .day-panel { width: 111px; }
+  #clock-label { font-size: 26px; }
+  .day-control input, .day-stops { width: 82px; }
+  .sound-controls input { width: 33px; }
+}
+@media (max-height: 560px) and (min-width: 601px) {
+  :root { --edge: 22px; }
+  .masthead { top: 19px; }
+  .masthead h1 { font-size: 32px; }
+  .top-actions { top: 19px; gap: 17px; }
+  .icon-button, .sound-toggle { font-size: 10px; }
+  .top-actions svg { width: 18px; height: 18px; }
+  .side-left, .side-right { top: 90px; bottom: 16px; gap: 18px; display: flex; flex-direction: column; }
+  .side-left { width: 174px; }
+  .side-right { width: 151px; bottom: auto; gap: 16px; }
+  .rail-heading { margin-bottom: 10px; font-size: 12px; }
+  .season-tabs { display: grid; grid-template-columns: repeat(2, 65px); gap: 11px 13px; }
+  .season-tabs button { min-width: 62px; gap: 6px; padding-bottom: 5px; }
+  .season-tabs button small { width: 12px; font-size: 8px; }
+  .season-tabs button > span { font-size: 28px; }
+  .season-tabs button.active::after { left: 18px; width: 20px; }
+  .season-cycle { margin-top: 12px; width: 142px; }
+  .cycle-button { min-height: 22px; font-size: 10px; }
+  #cycle-status { font-size: 9px; margin: 2px 0 7px; }
+  .day-panel { width: 146px; }
+  .day-panel .rail-heading { margin-bottom: 7px; }
+  #clock-label { font-size: 26px; }
+  .day-control { margin-top: 6px; }
+  .day-control input, .day-stops { width: 115px; }
+  .day-stops { margin-top: 2px; font-size: 8px; }
+  .weather-tools { flex-direction: row; flex-wrap: wrap; gap: 3px 13px; }
+  .weather-tools button { min-width: 39px; gap: 5px; min-height: 26px; font-size: 11px; }
+  .weather-tools button.active::after { right: -4px; top: 11px; width: 3px; height: 3px; }
+  .weather-tools svg { width: 17px; height: 17px; }
+  .interaction-rail .rail-heading { margin-bottom: 8px; }
+  .wind-toggle { margin-bottom: 4px; }
+  .tools { display: grid; grid-template-columns: repeat(2, 65px); gap: 2px 12px; }
+  .tools button, .wind-toggle { min-width: 61px; min-height: 26px; gap: 5px; font-size: 10px; }
+  .tools svg, .wind-toggle svg { width: 17px; height: 17px; }
+  .tools button.active::after { left: 23px; width: 18px; }
+}
+/* Shared daylight owns the class; these surfaces preserve legibility at night. */
+body.night-scene {
+  color: #e3ece2;
+  --ink: #e3ece2;
+  --muted: #adc0b5;
+  --line: #b9ccc15c;
+  --paper: #122b2e;
+  --control-scrim: #071d2433;
+}
+body.night-scene .ui { text-shadow: 0 1px 10px #00151acc; }
+body.night-scene .season-tabs button { color: #adc0b5c9; }
+body.night-scene .season-tabs button.active { color: var(--ink); }
+body.night-scene .season-tabs button.approaching,
+body.night-scene .season-tabs button.transitioning { color: #ef7a50; }
+body.night-scene .top-actions,
+body.night-scene .side-left section,
+body.night-scene .side-right section {
+  background: var(--control-scrim);
+  box-shadow: 0 0 22px 12px #071d2424;
+  border-radius: 2px;
+}
+body.night-scene input[type="range"] { background: #b5c9be88; }
+body.night-scene .sound-controls input { opacity: .85; }
+body.night-scene .sound-controls:has([aria-pressed="false"]) input { opacity: .4; }
+@media (prefers-reduced-motion: reduce) {
+  button, .ui, #loading.ready, #loading-progress::-webkit-progress-value { transition: none; }
+}
+
+/* The scene alone changes pixel density. Interface text stays at native CSS resolution. */
+.quality-control { display:flex; align-items:center; gap:5px; color:var(--ink); font-size:12px; white-space:nowrap; }
+.quality-control select { font:inherit; color:inherit; background:transparent; border:0; border-bottom:1px solid #70857b55; padding:4px 1px; cursor:pointer; }
+.quality-control select:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+body.night-scene .quality-control select { color-scheme:dark; }
+@media(max-width:1000px){ .quality-control {font-size:11px;} .quality-control>span {display:none;} }
+@media(max-width:600px){ .quality-control {font-size:10px;} .top-actions {gap:9px;} .sound-controls input {width:30px;} }

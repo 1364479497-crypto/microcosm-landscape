@@ -1,0 +1,15 @@
+{
+  "package": "three",
+  "version": "0.187.0",
+  "license": "MIT",
+  "upstreamTarball": "https://registry.npmjs.org/three/-/three-0.187.0.tgz",
+  "patches": [
+    {
+      "path": "vendor/three/examples/jsm/controls/OrbitControls.js",
+      "originalSha256": "e7fca2fe9e7670a828af9b28084669a5909445b7f36f1f26cee9bf8f2961c32c",
+      "patchedSha256": "52740987f54638b439a68790b6c68330638efbbea36ee748c01601125fb31a78",
+      "change": "Retain existing hasPointerCapture guard before normal pointer-up/cancel release. No camera mathematics change."
+    }
+  ],
+  "tarballSha256": "ff540832ded0cfe919764d24a3d88f3e2a05f23303f876423e4f893841e90728"
+}

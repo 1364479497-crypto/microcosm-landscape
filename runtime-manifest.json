@@ -1,0 +1,373 @@
+{
+  "appVersion": "2.3.9",
+  "threeVersion": "0.187.0",
+  "backend": "WebGL2",
+  "files": {
+    "index.html": {
+      "sha256": "06c573f24c1c619c46c354cda28df8c589a5ed09e1c3dc94421857b6e6f87453",
+      "bytes": 11307
+    },
+    "src/water-surface.js": {
+      "sha256": "c84c13c2d3f87b515803ce561f7cba43d93ca1be58c44a1438660310aab4f2d3",
+      "bytes": 6553
+    },
+    "src/pond-level.js": {
+      "sha256": "c888264ade656f78176c72c7a8f643018d4f36e856682500265b743c208ed79a",
+      "bytes": 1440
+    },
+    "src/meadow-habitat.js": {
+      "sha256": "a7d0fb2881b90d7e9475a244ced3444a920152201896b97928eb0ba5e522e67e",
+      "bytes": 9633
+    },
+    "src/wetland-relief.js": {
+      "sha256": "5ef29b8673f2a6b15929324f46d850d434ff477334869e02fde2b5a064c7892c",
+      "bytes": 2575
+    },
+    "src/vegetation-wind.js": {
+      "sha256": "d10a102d5791705214ccef759cd57154bd117c68e78f691b8e93ccf6f17dbfec",
+      "bytes": 5374
+    },
+    "src/cabin-materials.js": {
+      "sha256": "46617e7f51045f2a0c3cc599513f71e7938bdff2651021c442127e3724cae814",
+      "bytes": 9592
+    },
+    "src/terrain-materials.js": {
+      "sha256": "092d75f227863f46cb5683a0078cca93b5e68565262edc13128be1c90ebf1674",
+      "bytes": 15597
+    },
+    "src/scene-fauna.js": {
+      "sha256": "5beadf066d1af995d4c3b2f6b64184974f4c171615ba6c43bf30d8d48f91292e",
+      "bytes": 4753
+    },
+    "src/streamside-vegetation.js": {
+      "sha256": "67d330dbc36f1c2b3ca893e2f3f7e86c8ed92eeb70ce6800a4d55cd4c8b4000d",
+      "bytes": 14624
+    },
+    "src/scene-backdrop.js": {
+      "sha256": "b7c2fcc6f5e42734a7d89cacc64175f24a2a58444a84f73969bcb3c26401c3ec",
+      "bytes": 11090
+    },
+    "src/tree-skeleton.js": {
+      "sha256": "8e41fe83e587a0ffc1381e876ffd22a2f640f77bbce765301d072f85f6b60f9a",
+      "bytes": 19366
+    },
+    "src/running-water.js": {
+      "sha256": "d78d361c2ba56788e203f2a5f2a099458737f7e0292bcdb726ff8620b8872751",
+      "bytes": 32248
+    },
+    "src/water-touch.js": {
+      "sha256": "73fe223d3889a9a31e4477e59d610d4c51e2e1b3b8e95e13bba9a03e4f997a69",
+      "bytes": 6026
+    },
+    "src/weather.js": {
+      "sha256": "13cf750073d7c0b1292ce5e16e182ad29c280da8bd9bf0ea7ece1fa16dd60d60",
+      "bytes": 51653
+    },
+    "src/terrain.js": {
+      "sha256": "9c0f6ca083a1ff91ab63792bf583d2604dd9d3e99801d151cbbcdc3200e60745",
+      "bytes": 27742
+    },
+    "src/environment-lighting.js": {
+      "sha256": "6eb97870cfd80735c3392188d4a16570840132d96878242199524570d27df647",
+      "bytes": 881
+    },
+    "src/tree-motion.js": {
+      "sha256": "626da6e23681be57a8759bf779337ce407f1337a6ba5d0d01b54894e904ddf06",
+      "bytes": 8502
+    },
+    "src/flow-field.js": {
+      "sha256": "f3c37cf4effa2510a1c52ab6f6a15acd7830dc66162f61501017f732e1d004af",
+      "bytes": 21576
+    },
+    "src/kingfisher-prey.js": {
+      "sha256": "da2d4450c0a062bedb7c9ef2e2d0e9c982de73694e9298da8e371fd4002860ee",
+      "bytes": 13986
+    },
+    "src/pond-flora.js": {
+      "sha256": "ae89bb8a69a73add4f3e7270ce518b56d556613c0ea4295cd4a0f8941d4438ec",
+      "bytes": 20946
+    },
+    "src/fruit-trees.js": {
+      "sha256": "3aaa2562957336e83f7eef9fad33800169a3e88632b8e787dc2916bb6e292efa",
+      "bytes": 51115
+    },
+    "src/water.js": {
+      "sha256": "f708a54a774845265a8490f28ac3c2e4c82e17281056db4ef28aa1ab258e8e56",
+      "bytes": 25207
+    },
+    "src/bark-surface.js": {
+      "sha256": "d6f18bfb3a87ef1132f60fef0d4f0b64011e4d40938ea9d1b885a7796486ee75",
+      "bytes": 11766
+    },
+    "src/scene-birds.js": {
+      "sha256": "c1aa3bb1a0414eb5178f38c63ac6d311c89a5d19cd378b2bd0b92ee4b985d073",
+      "bytes": 39662
+    },
+    "src/cutaway-roots.js": {
+      "sha256": "cbf135effd4a5d05783fb1a68913e317816b88fe93167952111cd482e21289b0",
+      "bytes": 6761
+    },
+    "src/pond-caustics.js": {
+      "sha256": "77650c41c1812e3fdd6bb27154a05a0be3a64dc2a6f43545a8e1d6f5516ac8d1",
+      "bytes": 8408
+    },
+    "src/cabin.js": {
+      "sha256": "781ddc3600c2b5d542078ae2063b4ce27745a8057c1a832200a57bde8d43df3a",
+      "bytes": 27277
+    },
+    "src/pond-fish.js": {
+      "sha256": "1d62bcdf59f4cb36834b4ebd5d583e553e9cbb4f99bdd445e34e8a72c4899388",
+      "bytes": 34638
+    },
+    "src/scene-state.js": {
+      "sha256": "eb644463bd6e16ddff93ce2da9e96f8ef0f017a6b7849a664364ffa2d41026b9",
+      "bytes": 879
+    },
+    "src/ground-contact.js": {
+      "sha256": "37652322bb78c1156aa3c24df1881496bc212b54c67aeedba05003ca338599b2",
+      "bytes": 10734
+    },
+    "src/vegetation.js": {
+      "sha256": "0c3e74345161b66d916b01c1465b5840efba928603339422c37981502cba3082",
+      "bytes": 42407
+    },
+    "src/pond-bed.js": {
+      "sha256": "25396ce126f6c171119edacf30dd013174096896f716ec30597c52ae18330801",
+      "bytes": 7229
+    },
+    "src/main.js": {
+      "sha256": "458f73d0d4341194d49215cfb2f0918ca09eb8a2438f7829f33807507c8af669",
+      "bytes": 26851
+    },
+    "src/terrain-field.js": {
+      "sha256": "8cd25f9387be064ce5bdd6865f19f936176f33cca6ea2d8054825658786b0e4c",
+      "bytes": 15112
+    },
+    "src/props.js": {
+      "sha256": "b32df9c7398f4fe81924abff0dde96cc894ce9ec918a16c77ce9036300eb18bc",
+      "bytes": 13251
+    },
+    "src/rain-impact.js": {
+      "sha256": "25df2b83413ffd455e317d1ba8307e5847b8dcb2414d409695cf091252eb11ed",
+      "bytes": 8173
+    },
+    "src/woodland-layout.js": {
+      "sha256": "f3656cfee85de0539f27139cd6533ab17a7146f01077a1a76b69102523d838c2",
+      "bytes": 11644
+    },
+    "src/water-impact-vfx.js": {
+      "sha256": "a05cc34497783116e5ec7e009a1955a0c7e14a5c811d8f74a4c2c496c4faa8b2",
+      "bytes": 16346
+    },
+    "src/soil-section.js": {
+      "sha256": "34f4dac93c058a501c68471281c3790d9e76a4d7ff48eb8f71d443663cd64c10",
+      "bytes": 2348
+    },
+    "src/style.css": {
+      "sha256": "853cf3133eb62fc464ce5aea5ec3cdf00239e2484d81e8f352d4ee079f66cf5e",
+      "bytes": 17899
+    },
+    "src/tree-growth.js": {
+      "sha256": "cfd6bce950809f2962a7a5e9364580241b6b84311b294dbe49e4fdda6513d94f",
+      "bytes": 28009
+    },
+    "src/scene-audio.js": {
+      "sha256": "55bd3767ff803862bc866a3b8e7f825e81a44276779c82f8932978c37aa3248a",
+      "bytes": 12885
+    },
+    "src/meadow-flora.js": {
+      "sha256": "86d35c3ad48bea21dd09f23b4c4bfead0ea430c4fb52b40520591001ce4707d3",
+      "bytes": 64941
+    },
+    "src/leaf-canopy.js": {
+      "sha256": "cd50e34f38ee0e9e1c099b71d40d3fa76fbed89745a1cc2b8aeb7f20367f89cb",
+      "bytes": 10189
+    },
+    "src/seasonal-phenology.js": {
+      "sha256": "45aa61e147e2efbb55d03b193766d79de6ecb8f9e7abe70f035387a81dcaada7",
+      "bytes": 4316
+    },
+    "src/wetland-plants.js": {
+      "sha256": "2b187abb8de6400924001949aefa17e85f41b9e27dea21374bbd587ccb4eaf56",
+      "bytes": 12420
+    },
+    "src/daylight.js": {
+      "sha256": "2a6fb394543b85da8e8575ff6ba83609be602cc22015b2a28ed665fbe8bd361b",
+      "bytes": 6205
+    },
+    "src/fog-volumes.js": {
+      "sha256": "8c3e34b5c8b0f9fbe1aeb67faa9390486ce30e40f5cbf4a12c998ec1bb711fae",
+      "bytes": 6036
+    },
+    "src/vegetation-palette.js": {
+      "sha256": "69dbab2d4a737edf62a122cabf20bb1c8ddc98b69d0dc3d6f4d17a1f03cd2d18",
+      "bytes": 2338
+    },
+    "src/cloud-interaction.js": {
+      "sha256": "f56b8e2ae2b87cea0be9aa68a75457d1a1e56834722422de3a60e050a16ad05a",
+      "bytes": 2241
+    },
+    "src/chimney-smoke.js": {
+      "sha256": "152f22cf6f46ad49864979792ab3aba19f7ad6dd86c296546649fc3a13892135",
+      "bytes": 17399
+    },
+    "src/scene-butterflies.js": {
+      "sha256": "9daefbd46be0f05edbd99a3a105fc08a9de7f862a892d7d44e032cd495aa71c6",
+      "bytes": 24206
+    },
+    "src/adaptive-rendering.js": {
+      "sha256": "5038075ca15206ca3ce9ef926c107a164b12b3786e1ad715e7e5765078117cbf",
+      "bytes": 8085
+    },
+    "src/cloud-optics.js": {
+      "sha256": "89567d25cd6be99c1a654b08983fd7cf4c9c85120a748fc6e4e33c33b77a524c",
+      "bytes": 12709
+    },
+    "src/rain-parcels.js": {
+      "sha256": "36f47f1bf64a9f99a215a2fbeda2e6bf0f29aa24bfaa62baf4f64344b25f870c",
+      "bytes": 6823
+    },
+    "src/flow-optics.js": {
+      "sha256": "d684382c866e0fb8b93118adc84b22c4dc30b26854b05b30c7490c88f1313af2",
+      "bytes": 6386
+    },
+    "src/environment.js": {
+      "sha256": "a5e2c16c273e458e491dbf92da37ba88d0eb2fb19abc0c039aa513b6027e87d9",
+      "bytes": 4949
+    },
+    "src/bird-flock.js": {
+      "sha256": "2416a79c92604a27b3eb10fa8819d958bdee29eff8d6e4e763b1e538fcfc79a4",
+      "bytes": 17092
+    },
+    "src/forest-layout.js": {
+      "sha256": "074d983ef41118bf50958d986c124868cfbf683c1f9d345e2e953701e46298cb",
+      "bytes": 3412
+    },
+    "vendor/three/LICENSE": {
+      "sha256": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc",
+      "bytes": 1081
+    },
+    "vendor/three/build/three.core.js": {
+      "sha256": "613e370f76638fdef83926642bf256dc9615684922de1ce1f63a8583e5d78578",
+      "bytes": 1474799
+    },
+    "vendor/three/build/three.module.js": {
+      "sha256": "104f56145899722094556490d787aae0617cc2fc3382f31df02d724ea1aee341",
+      "bytes": 658900
+    },
+    "vendor/three/examples/jsm/controls/OrbitControls.js": {
+      "sha256": "52740987f54638b439a68790b6c68330638efbbea36ee748c01601125fb31a78",
+      "bytes": 40991
+    },
+    "vendor/three/examples/jsm/environments/RoomEnvironment.js": {
+      "sha256": "55f466192cc84298755a424c5e040345006b2ee1455589b3b54126c2ea4123f4",
+      "bytes": 4960
+    },
+    "vendor/three/examples/jsm/postprocessing/EffectComposer.js": {
+      "sha256": "4e079a5886152d7e529a59aef644e968ab4d32c6a33ce016b36bf29b2eac26f7",
+      "bytes": 8501
+    },
+    "vendor/three/examples/jsm/postprocessing/MaskPass.js": {
+      "sha256": "7cd08eee9d5d6f5578beaddbdcbe9c384f6873810af27f22ab7db3ceeb127aa3",
+      "bytes": 4694
+    },
+    "vendor/three/examples/jsm/postprocessing/OutputPass.js": {
+      "sha256": "02e4a261af34de71338185e9e87f0cbe5cba9115608d984363e1269dec1d2272",
+      "bytes": 4184
+    },
+    "vendor/three/examples/jsm/postprocessing/Pass.js": {
+      "sha256": "444b409c235ead986893c472e720da1b779a56985c7d10b279c7944b52bd61c5",
+      "bytes": 4218
+    },
+    "vendor/three/examples/jsm/postprocessing/RenderPass.js": {
+      "sha256": "817f6c3cdcd0fd41515d112359ea0532568eefb5aabd3b33903957ebca1b8a6a",
+      "bytes": 4280
+    },
+    "vendor/three/examples/jsm/postprocessing/ShaderPass.js": {
+      "sha256": "e2500a5913b26bbf5148ceaae644c6edcff06a18b01494ee37bf856353d2ab9d",
+      "bytes": 3228
+    },
+    "vendor/three/examples/jsm/postprocessing/UnrealBloomPass.js": {
+      "sha256": "ba8f2fcadfa6588384c9473498f974d81d120f02f0e63a0e59c265202a006b5a",
+      "bytes": 15397
+    },
+    "vendor/three/examples/jsm/shaders/CopyShader.js": {
+      "sha256": "a33057d5ac91c43304c186ac0e8816e62bb2ed471d3a00ff3018dfd5c0389718",
+      "bytes": 729
+    },
+    "vendor/three/examples/jsm/shaders/LuminosityHighPassShader.js": {
+      "sha256": "5044f780b6e6cf863947f64c36fe1587132f7fbe395ada863cd1e5f0388dcf1e",
+      "bytes": 1291
+    },
+    "vendor/three/examples/jsm/shaders/OutputShader.js": {
+      "sha256": "353479f77a8d7e2629d49ccac9fc2f5dbfdda5442e0adf867b00377a2fcb0cb2",
+      "bytes": 1876
+    },
+    "vendor/three/package.json": {
+      "sha256": "87f2c99a8718e5fdd6f5e51427fde52c6075f2f698ddf8f7b4e162882df93940",
+      "bytes": 3818
+    },
+    "assets/butterfly-cc0/data.js": {
+      "sha256": "30ab28f1c452793bb6164ba28a6ca9be53e6c6b316ad7162b7d3d03a93fc7cdb",
+      "bytes": 1460845
+    },
+    "assets/butterfly-cc0/license.txt": {
+      "sha256": "9620730dad143bb7669245fc08899dbec44a0c939ed68750d6a6b0b3f0497763",
+      "bytes": 183
+    },
+    "assets/butterfly-cc0/provenance.json": {
+      "sha256": "4641b66a1b7a578f6713f0f9c9dd040b00b281ab73eac2b152b217ec095f56a7",
+      "bytes": 3309
+    },
+    "assets/butterfly-cc0/skin.png": {
+      "sha256": "a8c25b9d9b2ce737276e8a174e4b77024effeab05c64a47b12a86f56a0521265",
+      "bytes": 126535
+    },
+    "assets/audio/runtime/01_forest_breeze.mp3": {
+      "sha256": "308149829c4ea8a271b1261cb7bd2cc1382192c044d148d62207083de884fa66",
+      "bytes": 481220
+    },
+    "assets/audio/runtime/02_leaf_gust.mp3": {
+      "sha256": "9cf0be99fe0c46ee99011d85353298ce829cd8311fb35323df2569145370fe48",
+      "bytes": 42049
+    },
+    "assets/audio/runtime/03_waterfall_body.mp3": {
+      "sha256": "442cc9b89b8029f9ed14517988418597abe3697a2b516b825d69a786cd109c82",
+      "bytes": 361161
+    },
+    "assets/audio/runtime/04_waterfall_impact.mp3": {
+      "sha256": "9ae7c0b68936750513bd2070ca2dbfea707484bb5804e31812f2f6f4b842ebd8",
+      "bytes": 145181
+    },
+    "assets/audio/runtime/05_stream_shallow.mp3": {
+      "sha256": "d28d2e67330e367dd6ca159d7feb1c291d8b0ca2f83e55f0e16090dd259cb895",
+      "bytes": 16345
+    },
+    "assets/audio/runtime/06_rain_leaves_soil.mp3": {
+      "sha256": "faed6d9c32d92b3b348aafdf211b3e83820d5d6f7837df04c94b52cb44e1f669",
+      "bytes": 49573
+    },
+    "assets/audio/runtime/07_rain_pond.mp3": {
+      "sha256": "3184cfc98c76e5235d19fb465d10a22d060d2094f8f84f91fcf841b0adf691e8",
+      "bytes": 384985
+    },
+    "assets/audio/runtime/08_thunder_close.mp3": {
+      "sha256": "4a636e985848fe48ebd088ebefdcc4ac4879a0415ea6ea8558e16fc0339919b3",
+      "bytes": 247422
+    },
+    "assets/audio/runtime/09_thunder_distant.mp3": {
+      "sha256": "55a22802bc6565befdc9235ad1c54b1de9d42fa00a9beea3aec00d5d4845e54f",
+      "bytes": 313257
+    },
+    "assets/audio/runtime/10_small_bird_calls.mp3": {
+      "sha256": "a71ce36341e008a75254da18c61fa851a222ddd54e7acf7a0a46e3ee1d724ab6",
+      "bytes": 361161
+    }
+  },
+  "previousIndependentReview": {
+    "scope": "r180 to r187 migration in local Chrome/Metal",
+    "verdict": "pass",
+    "reviewedWorkingTreeManifestSha256": "5208ce6eb5a7ea4e1d704f15790f2eed1e6530f3b22e5c6bda1a21c392212ad8"
+  },
+  "publicationScope": "Static runtime only. Original research/chat/local path records and source audio masters are not part of this repository."
+}
