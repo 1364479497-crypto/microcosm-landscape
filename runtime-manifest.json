@@ -1,11 +1,11 @@
 {
-  "appVersion": "2.3.10",
+  "appVersion": "2.3.11",
   "threeVersion": "0.187.0",
   "backend": "WebGL2",
   "files": {
     "index.html": {
-      "sha256": "8994c790d0e384ae5c0dce230b82c4190623e3eb6863f2473920045ef45b1a35",
-      "bytes": 11407
+      "sha256": "343691f2a4cc43430a11c3b17bd09b803fc1703971925a0e947f681b5f0d1f78",
+      "bytes": 11476
     },
     "src/water-surface.js": {
       "sha256": "c84c13c2d3f87b515803ce561f7cba43d93ca1be58c44a1438660310aab4f2d3",
@@ -92,8 +92,8 @@
       "bytes": 51115
     },
     "src/water.js": {
-      "sha256": "912f2a3d43498e5ba6103606d3ce9aa6bb0768aca5510135649a39ceb826229c",
-      "bytes": 25699
+      "sha256": "5ad1f9dbb3894fa92101734f8545374ef0ebc11807ca3825bb66f044d8dcd921",
+      "bytes": 27189
     },
     "src/bark-surface.js": {
       "sha256": "d6f18bfb3a87ef1132f60fef0d4f0b64011e4d40938ea9d1b885a7796486ee75",
@@ -136,8 +136,8 @@
       "bytes": 7229
     },
     "src/main.js": {
-      "sha256": "f4762c2bb8d06a0544b2e0db70ed72674adc0681d06ca6c794502a32b2f632b5",
-      "bytes": 29270
+      "sha256": "fe1add4bf2e82f79c50a5914477b5f7e23c002c9a2601db7f26122fbea05494f",
+      "bytes": 29634
     },
     "src/terrain-field.js": {
       "sha256": "8cd25f9387be064ce5bdd6865f19f936176f33cca6ea2d8054825658786b0e4c",
@@ -216,8 +216,8 @@
       "bytes": 24206
     },
     "src/adaptive-rendering.js": {
-      "sha256": "92dc67358777d313db8abdb94e71f8d65ee7c1302a9182cf505f438c926454d4",
-      "bytes": 8887
+      "sha256": "cee6b0371205f214a31826c7da7f7fe6c643e4e2f3e9a5cdbd82cb081576303e",
+      "bytes": 8885
     },
     "src/cloud-optics.js": {
       "sha256": "89567d25cd6be99c1a654b08983fd7cf4c9c85120a748fc6e4e33c33b77a524c",
@@ -362,6 +362,18 @@
     "assets/audio/runtime/10_small_bird_calls.mp3": {
       "sha256": "a71ce36341e008a75254da18c61fa851a222ddd54e7acf7a0a46e3ee1d724ab6",
       "bytes": 361161
+    },
+    "src/shared-opaque-pass.js": {
+      "sha256": "41b2e3fe22d13b69f7d3ba655f0290175cb19144cb80a6e84fa4d61a21729357",
+      "bytes": 3336
+    },
+    "vendor/three/examples/jsm/postprocessing/SMAAPass.js": {
+      "sha256": "1a96804b8cb33ba76a67f9a8e77f2d5e2bf47b1a5c9a8476901aa75e24acb85c",
+      "bytes": 50379
+    },
+    "vendor/three/examples/jsm/shaders/SMAAShader.js": {
+      "sha256": "48ce320a6bf5c33806c4fa13ade7e3ab199f7856838d36b05ae82204db8a1c15",
+      "bytes": 15002
     }
   },
   "previousIndependentReview": {

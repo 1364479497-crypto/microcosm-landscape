@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
-import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {SharedOpaquePass} from './shared-opaque-pass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {SMAAPass} from 'three/addons/postprocessing/SMAAPass.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {createTerrain} from './terrain.js';
 import {createVegetation} from './vegetation.js';
@@ -57,23 +58,24 @@ await loading(82,'唤醒飞鸟与游鱼');
 const fauna=createSceneFauna({terrain,vegetation,field,props,seed});scene.add(fauna.group);
 fauna.setLakeSurfaceSampler((x,z,time,wind)=>water.sampleSurfaceHeight(x,z,time,wind));
 
-weather.setSceneDepth?.(water.getSceneDepth());
+water.setSceneDepthConsumer(depth=>weather.setSceneDepth(depth));
 water.setCaptureExclusions(weather.captureExclusions||[weather.fogVolumes.brush.object,weather.fogVolumes.ambient.object]);
 weather.setLakeSurfaceSampler?.((x,z,time,wind)=>water.sampleSurfaceHeight(x,z,time,wind));
 weather.setFlowSurfaceSampler?.((x,z,time,wind)=>water.sampleFlowSurface?.(x,z,time,wind));
 water.setCloudOcclusion?.(weather.getCloudOcclusion?.());
 const daylightHandle=createDaylightHandle(scene,camera,renderer.domElement,h=>{state.hour=h;state.dayCycle=false;$('#time').value=h;syncCycles();});
-const compositionTarget=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType,samples:quality==='high'&&renderQuality.mode==='clear'?2:0});
-const composer=new EffectComposer(renderer,compositionTarget);composer.setSize(innerWidth,innerHeight);composer.addPass(new RenderPass(scene,camera));const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.12,.35,1.7);composer.addPass(bloom);
+const compositionTarget=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType,samples:0});
+const composer=new EffectComposer(renderer,compositionTarget);composer.setSize(innerWidth,innerHeight);const scenePass=new SharedOpaquePass(scene,camera,water,[water.group,...weather.captureExclusions]);composer.addPass(scenePass);const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.12,.35,1.7);composer.addPass(bloom);
 // Keep landscape detail readable throughout orbit and zoom. A fixed screen-space
 // focus band blurred the waterfall and mountain peaks as they crossed the frame.
+const edgeAA=new SMAAPass();composer.addPass(edgeAA);
 composer.addPass(new OutputPass());
 function applyRenderRatio(ratio){renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);water.resize?.(innerWidth,innerHeight);}
 const renderBudgets = {
   clear:  {shadowHz: Infinity, colorHz: 15, reflectionHz: 8, waterScale: 1},
   auto:   {shadowHz: 12, colorHz: 12, reflectionHz: 6, waterScale: 1},
   smooth: {shadowHz: 8, colorHz: 10, reflectionHz: 5, waterScale: .85},
-  record: {shadowHz: 8, colorHz: 10, reflectionHz: 5, waterScale: .85},
+  record: {shadowHz: 4, colorHz: 12, reflectionHz: 3, waterScale: .85},
 };
 let shadowUpdatedAt = -Infinity, shadowHour = null, nextRecordingFrame = null;
 const renderBudget = {shadowUpdates: 0, frameCap: null};
@@ -85,11 +87,14 @@ function applyRenderBudget() {
   renderer.shadowMap.needsUpdate = true;
   shadowUpdatedAt = -Infinity;
   nextRecordingFrame = null;
-  const samples = mode === 'clear' && quality === 'high' ? 2 : 0;
+  scenePass.shared=mode==='record'||mode==='auto';
+  edgeAA.enabled=mode==='record';
+  const samples=quality==='high'&&mode==='clear'?2:0;
   for (const target of [composer.renderTarget1,composer.renderTarget2]) {
-    if (target.samples === samples) continue;
+    if(target.samples===samples && Boolean(target.depthTexture)===scenePass.shared)continue;
     target.dispose();
-    target.samples = samples;
+    target.samples=samples;
+    target.depthTexture=scenePass.shared?new THREE.DepthTexture(target.width,target.height,THREE.UnsignedIntType):null;
   }
   water.setRenderBudget(budget);
   updateRenderDetail();
@@ -97,8 +102,8 @@ function applyRenderBudget() {
 function updateRenderDetail() {
   const mode=renderQuality.mode;
   const distance=camera.position.distanceTo(controls.target);
-  const compact=mode==='record'||mode==='smooth'||(mode==='auto'&&
-    renderQuality.ratio<=.85&&distance>(renderBudget.compactDetail?11:13));
+  const compact=mode==='smooth'||((mode==='record'||(mode==='auto'&&renderQuality.ratio<=.85))&&
+    distance>(renderBudget.compactDetail?11:13));
   if (vegetation.setCompactDetail(compact)) {
     renderBudget.compactDetail=compact;
     shadowUpdatedAt=-Infinity;
@@ -191,9 +196,9 @@ function render(now){requestAnimationFrame(render);if(document.hidden){lastFrame
   // Preserve refresh phase across small delays without queueing catch-up work.
   nextRecordingFrame=Math.max(now-interval*.5,nextRecordingFrame??now)+interval;
  }
- const realDt=Math.max(0,(now-lastFrame)/1000),dt=Math.min(.05,realDt);lastFrame=now;wallMs=wallMs*.95+realDt*1000*.05;renderQuality.sample(realDt*1000,now);renderer.info.reset();update(state.paused?0:dt);updateRenderDetail();water.beforeRender?.();weather.prepareRender?.();renderScene();frames++;if(frames===1){startup.readyMs=performance.now();setTimeout(()=>audio.autoStart(),0);}if(frames%5===0){syncCycles();const hour=Math.floor(state.hour),min=Math.floor(state.hour%1*60);$('#clock-label').textContent=String(hour).padStart(2,'0')+':'+String(min).padStart(2,'0');$('#weather-label').textContent=['春日','盛夏','深秋','冬日'][Math.round(state.season)%4]+' · '+(state.temperature<0?'雪':state.rain>.3?'雨':state.daylight<.2?'夜':'晴');}}
-window.__MICROCOSM={startup,renderQuality,renderBudget,backdrop,resetEffects,setWindPaused,state,scene,camera,controls,renderer,composer,lighting:{sun,hemi,moon,lightning,lightningFill},audio,vegetationPalette,pondPalette,terrain,world:terrain,vegetation,props,water,fauna,weather,field,daylightHandle,errors,setSeason:selectSeason,setSeasonCycle,setTool,setWeather,setHour:h=>state.hour=h,setPost(enabled){postAllowed=enabled;bloom.enabled=enabled;},simulate(seconds){const n=Math.round(seconds*30),paused=state.paused;state.paused=false;for(let i=0;i<n;i++)update(1/30);state.paused=paused;},stats:()=>({frames,frameTimeMs:wallMs,renderQuality:renderQuality.stats,render:{...renderer.info.render},memory:{...renderer.info.memory},terrain:terrain.stats,vegetation:vegetation.stats,props:props.stats,water:water.stats,fauna:fauna.stats,weather:weather.stats,audio:audio.stats,input:{tool,pointerOwner,activePointerId,orbitEnabled:controls.enableRotate},field:field.stats,route:'INDEPENDENT_IMPLEMENTATION'}),fixed({season=0,hour=15,time=0,rain=0,fog=0}={}){state.paused=true;state.cycle=false;seasonTarget=state.season=season;state.hour=hour;state.time=time;state.rain=rainTarget=rain;state.fog=fogTarget=fog;syncCycles();}};
+ const realDt=Math.max(0,(now-lastFrame)/1000),dt=Math.min(.05,realDt);lastFrame=now;wallMs=wallMs*.95+realDt*1000*.05;renderQuality.sample(realDt*1000,now);renderer.info.reset();update(state.paused?0:dt);updateRenderDetail();weather.prepareRender?.();renderScene();frames++;if(frames===1){startup.readyMs=performance.now();setTimeout(()=>audio.autoStart(),0);}if(frames%5===0){syncCycles();const hour=Math.floor(state.hour),min=Math.floor(state.hour%1*60);$('#clock-label').textContent=String(hour).padStart(2,'0')+':'+String(min).padStart(2,'0');$('#weather-label').textContent=['春日','盛夏','深秋','冬日'][Math.round(state.season)%4]+' · '+(state.temperature<0?'雪':state.rain>.3?'雨':state.daylight<.2?'夜':'晴');}}
+window.__MICROCOSM={startup,renderQuality,renderBudget,scenePass,backdrop,resetEffects,setWindPaused,state,scene,camera,controls,renderer,composer,lighting:{sun,hemi,moon,lightning,lightningFill},audio,vegetationPalette,pondPalette,terrain,world:terrain,vegetation,props,water,fauna,weather,field,daylightHandle,errors,setSeason:selectSeason,setSeasonCycle,setTool,setWeather,setHour:h=>state.hour=h,setPost(enabled){postAllowed=enabled;bloom.enabled=enabled;},simulate(seconds){const n=Math.round(seconds*30),paused=state.paused;state.paused=false;for(let i=0;i<n;i++)update(1/30);state.paused=paused;},stats:()=>({frames,frameTimeMs:wallMs,renderQuality:renderQuality.stats,render:{...renderer.info.render},memory:{...renderer.info.memory},terrain:terrain.stats,vegetation:vegetation.stats,props:props.stats,water:water.stats,fauna:fauna.stats,weather:weather.stats,audio:audio.stats,input:{tool,pointerOwner,activePointerId,orbitEnabled:controls.enableRotate},field:field.stats,route:'INDEPENDENT_IMPLEMENTATION'}),fixed({season=0,hour=15,time=0,rain=0,fog=0}={}){state.paused=true;state.cycle=false;seasonTarget=state.season=season;state.hour=hour;state.time=time;state.rain=rainTarget=rain;state.fog=fogTarget=fog;syncCycles();}};
 syncWeather();syncCycles();resize();update(0);await loading(90,'准备云水与光影');
 if(renderer.compileAsync)await renderer.compileAsync(scene,camera);else renderer.compile(scene,camera);
-await loading(97,'完成景观');water.beforeRender?.();weather.prepareRender?.();renderScene();startup.firstLandscapeMs=performance.now();
+await loading(97,'完成景观');weather.prepareRender?.();renderScene();startup.firstLandscapeMs=performance.now();
 await loading(100,'就绪');$('#loading')?.remove();startup.coverRemovedMs=performance.now();lastFrame=performance.now();renderQuality.ready(lastFrame);requestAnimationFrame(render);

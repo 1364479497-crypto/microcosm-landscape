@@ -4,7 +4,7 @@ export const ADAPTIVE_RENDERING_DEFAULTS = Object.freeze({
   initialRatio: 0.85,
   minimumRatio: 0.55,
   smoothRatio: 0.72,
-  recordingRatio: 0.72,
+  recordingRatio: 1,
   windowMs: 1500,
   warmupMs: 3000,
   cooldownMs: 3000,
@@ -44,7 +44,7 @@ export function createAdaptiveRendering({
     const {width, height} = viewport;
     if (!(width > 0 && height > 0)) return device;
     const cap = currentMode === 'record'
-      ? Math.min(1440 / width, 900 / height)
+      ? Math.min(1920 / width, 1200 / height)
       : Math.sqrt(1600000 / (width * height));
     return Math.min(device, cap);
   };
