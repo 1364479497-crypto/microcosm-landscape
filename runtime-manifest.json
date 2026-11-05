@@ -1,11 +1,11 @@
 {
-  "appVersion": "2.3.9",
+  "appVersion": "2.3.10",
   "threeVersion": "0.187.0",
   "backend": "WebGL2",
   "files": {
     "index.html": {
-      "sha256": "06c573f24c1c619c46c354cda28df8c589a5ed09e1c3dc94421857b6e6f87453",
-      "bytes": 11307
+      "sha256": "8994c790d0e384ae5c0dce230b82c4190623e3eb6863f2473920045ef45b1a35",
+      "bytes": 11407
     },
     "src/water-surface.js": {
       "sha256": "c84c13c2d3f87b515803ce561f7cba43d93ca1be58c44a1438660310aab4f2d3",
@@ -92,8 +92,8 @@
       "bytes": 51115
     },
     "src/water.js": {
-      "sha256": "f708a54a774845265a8490f28ac3c2e4c82e17281056db4ef28aa1ab258e8e56",
-      "bytes": 25207
+      "sha256": "912f2a3d43498e5ba6103606d3ce9aa6bb0768aca5510135649a39ceb826229c",
+      "bytes": 25699
     },
     "src/bark-surface.js": {
       "sha256": "d6f18bfb3a87ef1132f60fef0d4f0b64011e4d40938ea9d1b885a7796486ee75",
@@ -128,16 +128,16 @@
       "bytes": 10734
     },
     "src/vegetation.js": {
-      "sha256": "0c3e74345161b66d916b01c1465b5840efba928603339422c37981502cba3082",
-      "bytes": 42407
+      "sha256": "3f995d781b665e3bd1a6325abb2bd1173de5f2d752ccd2f7aee6726d45377c26",
+      "bytes": 43259
     },
     "src/pond-bed.js": {
       "sha256": "25396ce126f6c171119edacf30dd013174096896f716ec30597c52ae18330801",
       "bytes": 7229
     },
     "src/main.js": {
-      "sha256": "458f73d0d4341194d49215cfb2f0918ca09eb8a2438f7829f33807507c8af669",
-      "bytes": 26851
+      "sha256": "f4762c2bb8d06a0544b2e0db70ed72674adc0681d06ca6c794502a32b2f632b5",
+      "bytes": 29270
     },
     "src/terrain-field.js": {
       "sha256": "8cd25f9387be064ce5bdd6865f19f936176f33cca6ea2d8054825658786b0e4c",
@@ -168,8 +168,8 @@
       "bytes": 17899
     },
     "src/tree-growth.js": {
-      "sha256": "cfd6bce950809f2962a7a5e9364580241b6b84311b294dbe49e4fdda6513d94f",
-      "bytes": 28009
+      "sha256": "c51b8e9ea9defe3eb9cd03588a061bae37fe664a00288861be328117c8a22ca4",
+      "bytes": 28112
     },
     "src/scene-audio.js": {
       "sha256": "55bd3767ff803862bc866a3b8e7f825e81a44276779c82f8932978c37aa3248a",
@@ -216,8 +216,8 @@
       "bytes": 24206
     },
     "src/adaptive-rendering.js": {
-      "sha256": "5038075ca15206ca3ce9ef926c107a164b12b3786e1ad715e7e5765078117cbf",
-      "bytes": 8085
+      "sha256": "92dc67358777d313db8abdb94e71f8d65ee7c1302a9182cf505f438c926454d4",
+      "bytes": 8887
     },
     "src/cloud-optics.js": {
       "sha256": "89567d25cd6be99c1a654b08983fd7cf4c9c85120a748fc6e4e33c33b77a524c",

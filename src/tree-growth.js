@@ -51,9 +51,9 @@ export function createTreeLeafGeometry() {
 // Twenty-two separate needles growing from eleven points on a living shoot.
 // Each is one tapered triangle. The radial arrangement has no crossed planes,
 // texture alpha, rectangular sheets or closed discs.
-export function createConiferNeedleGeometry() {
+export function createConiferNeedleGeometry(compact = false) {
   const positions = [], uvs = [], indices = [];
-  for (let node = 0; node < 11; node++) {
+  for (let node = 0; node < 11; node += compact ? 2 : 1) {
     for (let pair = 0; pair < 2; pair++) {
       const az = node * 2.399963 + pair * Math.PI + .28;
       const attachment = .035 + node * .083;
@@ -61,8 +61,9 @@ export function createConiferNeedleGeometry() {
       const cross = new THREE.Vector3(-Math.sin(az), .12, Math.cos(az)).normalize();
       const base = new THREE.Vector3(0, attachment, 0);
       const length = .33 + .034 * ((node + pair) % 3);
-      const a = base.clone().addScaledVector(cross, -.0175);
-      const b = base.clone().addScaledVector(cross, .0175);
+      const halfWidth = compact ? .025 : .0175;
+      const a = base.clone().addScaledVector(cross, -halfWidth);
+      const b = base.clone().addScaledVector(cross, halfWidth);
       const tip = base.clone().addScaledVector(radial, length).addScaledVector(UP, .065);
       const first = positions.length / 3;
       positions.push(...a.toArray(), ...b.toArray(), ...tip.toArray());
@@ -81,7 +82,7 @@ export function createConiferNeedleGeometry() {
   positions.push(0, 1.035, 0); uvs.push(.5, 1);
   for (let i = 0; i < 3; i++) indices.push(stemBase + i, stemBase + (i + 1) % 3, stemBase + 3);
   const geometry = completeGeometry(positions, uvs, indices, 'Twenty-two radial spruce needles on a solid growing shoot');
-  geometry.userData.needleCount = 22;
+  geometry.userData.needleCount = compact ? 12 : 22;
   geometry.userData.stemTriangles = 3;
   geometry.userData.shootAxis = { base: [0, -.015, 0], tip: [0, 1.035, 0] };
   return geometry;

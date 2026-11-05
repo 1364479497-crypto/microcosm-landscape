@@ -24,7 +24,7 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],par
 const startup={moduleStartMs:performance.now(),stages:[],progress:[],firstLandscapeMs:null,readyMs:null};const stage=(name,start)=>startup.stages.push({name,ms:performance.now()-start,at:performance.now()});
 let storedRenderMode='auto';try{storedRenderMode=localStorage.getItem('microcosm.render-mode')||'auto';}catch{}
 const requestedRenderMode=params.get('render')||storedRenderMode;
-const renderQuality=createAdaptiveRendering({nativePixelRatio:devicePixelRatio,maxRatio:quality==='high'?1.5:1,mode:['auto','clear','smooth'].includes(requestedRenderMode)?requestedRenderMode:'auto',onRatio:applyRenderRatio});
+const renderQuality=createAdaptiveRendering({nativePixelRatio:devicePixelRatio,maxRatio:quality==='high'?1.5:1,mode:['auto','clear','smooth','record'].includes(requestedRenderMode)?requestedRenderMode:'auto',viewport:{width:innerWidth,height:innerHeight},onRatio:applyRenderRatio,onMode:applyRenderBudget});
 const errors=[];function failure(message){errors.push(message);$('#loading')?.remove();$('#failure').textContent='景观启动失败：'+message;$('#failure').classList.remove('hidden');}window.addEventListener('error',e=>failure(e.message));window.addEventListener('unhandledrejection',e=>failure(e.reason?.message||String(e.reason)));
 async function loading(value,label){const el=$('#loading-progress');if(el)el.value=value;const percent=$('#loading-percent');if(percent)percent.textContent=value+'%';const phase=$('#loading-stage');if(phase)phase.textContent=label;startup.progress.push({value,label,at:performance.now()});await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));}
 await loading(5,'准备山居');
@@ -63,14 +63,65 @@ weather.setLakeSurfaceSampler?.((x,z,time,wind)=>water.sampleSurfaceHeight(x,z,t
 weather.setFlowSurfaceSampler?.((x,z,time,wind)=>water.sampleFlowSurface?.(x,z,time,wind));
 water.setCloudOcclusion?.(weather.getCloudOcclusion?.());
 const daylightHandle=createDaylightHandle(scene,camera,renderer.domElement,h=>{state.hour=h;state.dayCycle=false;$('#time').value=h;syncCycles();});
-const compositionTarget=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType,samples:quality==='high'?2:0});
+const compositionTarget=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType,samples:quality==='high'&&renderQuality.mode==='clear'?2:0});
 const composer=new EffectComposer(renderer,compositionTarget);composer.setSize(innerWidth,innerHeight);composer.addPass(new RenderPass(scene,camera));const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.12,.35,1.7);composer.addPass(bloom);
 // Keep landscape detail readable throughout orbit and zoom. A fixed screen-space
 // focus band blurred the waterfall and mountain peaks as they crossed the frame.
 composer.addPass(new OutputPass());
 function applyRenderRatio(ratio){renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);water.resize?.(innerWidth,innerHeight);}
-const qualityControl=$('#render-quality');qualityControl.value=renderQuality.mode;qualityControl.onchange=e=>{renderQuality.setMode(e.target.value,performance.now());try{localStorage.setItem('microcosm.render-mode',renderQuality.mode);}catch{}};
-document.addEventListener('visibilitychange',()=>renderQuality.setVisible(!document.hidden,performance.now()));
+const renderBudgets = {
+  clear:  {shadowHz: Infinity, colorHz: 15, reflectionHz: 8, waterScale: 1},
+  auto:   {shadowHz: 12, colorHz: 12, reflectionHz: 6, waterScale: 1},
+  smooth: {shadowHz: 8, colorHz: 10, reflectionHz: 5, waterScale: .85},
+  record: {shadowHz: 8, colorHz: 10, reflectionHz: 5, waterScale: .85},
+};
+let shadowUpdatedAt = -Infinity, shadowHour = null, nextRecordingFrame = null;
+const renderBudget = {shadowUpdates: 0, frameCap: null};
+function applyRenderBudget() {
+  const mode = renderQuality.mode;
+  const budget = renderBudgets[mode];
+  Object.assign(renderBudget,budget,{frameCap:mode==='record'?30:null});
+  renderer.shadowMap.autoUpdate = mode === 'clear';
+  renderer.shadowMap.needsUpdate = true;
+  shadowUpdatedAt = -Infinity;
+  nextRecordingFrame = null;
+  const samples = mode === 'clear' && quality === 'high' ? 2 : 0;
+  for (const target of [composer.renderTarget1,composer.renderTarget2]) {
+    if (target.samples === samples) continue;
+    target.dispose();
+    target.samples = samples;
+  }
+  water.setRenderBudget(budget);
+  updateRenderDetail();
+}
+function updateRenderDetail() {
+  const mode=renderQuality.mode;
+  const distance=camera.position.distanceTo(controls.target);
+  const compact=mode==='record'||mode==='smooth'||(mode==='auto'&&
+    renderQuality.ratio<=.85&&distance>(renderBudget.compactDetail?11:13));
+  if (vegetation.setCompactDetail(compact)) {
+    renderBudget.compactDetail=compact;
+    shadowUpdatedAt=-Infinity;
+    water.invalidateCaptures();
+  }
+}
+function prepareShadow(now) {
+  if (!renderer.shadowMap.autoUpdate && (shadowHour === null ||
+      Math.abs(shadowHour-state.hour)>.065 || now-shadowUpdatedAt>=1000/renderBudget.shadowHz)) {
+    renderer.shadowMap.needsUpdate = true;
+    shadowUpdatedAt = now;
+    shadowHour = state.hour;
+    renderBudget.shadowUpdates++;
+  }
+}
+const qualityControl=$('#render-quality');
+qualityControl.value=renderQuality.mode;
+qualityControl.onchange=e=>{
+  renderQuality.setMode(e.target.value,performance.now());
+  try{localStorage.setItem('microcosm.render-mode',renderQuality.mode);}catch{}
+};
+applyRenderBudget();
+document.addEventListener('visibilitychange',()=>{renderQuality.setVisible(!document.hidden,performance.now());nextRecordingFrame=null;});
 function setTool(t){if(activePointerId!==null)release({});tool=t;weather.setTool(t);controls.enableRotate=t==='orbit'||t==='cloud';controls.enablePan=true;$$('[data-tool]').forEach(b=>{b.classList.toggle('active',b.dataset.tool===t);b.setAttribute('aria-pressed',String(b.dataset.tool===t));});}
 $$('[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
 function stopCameraInertia(){const p=camera.position.clone(),q=camera.quaternion.clone(),target=controls.target.clone(),damping=controls.enableDamping;controls.enableDamping=false;controls.update();camera.position.copy(p);camera.quaternion.copy(q);controls.target.copy(target);controls.update();controls.enableDamping=damping;}
@@ -125,16 +176,23 @@ function resetEffects(){tapCandidate=null;cancelOrbit();release({});touchPoints.
  setWindPaused(false);selectSeason(0);setTool('orbit');$('#time').value=15;$('#cycle').setAttribute('aria-pressed','false');$('#day-cycle').setAttribute('aria-pressed','false');syncWeather();syncCycles();resetView();update(0);water.touch.reset();props.fish.consumeSurfaceEvents?.();
 }
 
-function resize(){renderQuality.resize(devicePixelRatio,performance.now());camera.aspect=innerWidth/innerHeight;camera.fov=camera.aspect<1?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(35)*.5)/camera.aspect)):35;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);water.resize?.(innerWidth,innerHeight);daylightHandle.setOccluders($$('.side-left,.side-right,.masthead,.top-actions').map(el=>{const r=el.getBoundingClientRect();return{left:r.left,right:r.right,top:r.top,bottom:r.bottom};}));}window.addEventListener('resize',resize);
+function resize(){renderQuality.resize(devicePixelRatio,performance.now(),{width:innerWidth,height:innerHeight});camera.aspect=innerWidth/innerHeight;camera.fov=camera.aspect<1?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(35)*.5)/camera.aspect)):35;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);water.resize?.(innerWidth,innerHeight);daylightHandle.setOccluders($$('.side-left,.side-right,.masthead,.top-actions').map(el=>{const r=el.getBoundingClientRect();return{left:r.left,right:r.right,top:r.top,bottom:r.bottom};}));}window.addEventListener('resize',resize);
 function update(dt){
  if(!state.paused){state.time+=dt;if(state.cycle){state.season=advanceSeason(state.season,dt,true);seasonTarget=state.season;}let delta=((seasonTarget-state.season+6)%4)-2;if(Math.abs(delta+2)<1e-6)delta=2;if(!state.cycle&&Math.abs(delta)<.002){state.season=seasonTarget;delta=0;}state.season=(state.season+delta*(1-Math.exp(-dt*1.8))+4)%4;if(state.dayCycle)state.hour=(state.hour+dt*.12)%24;}
  const theta=(state.hour-12)/12*Math.PI,solar=Math.cos(theta);state.daylight=THREE.MathUtils.smoothstep(solar,-.12,.4);document.body.classList.toggle('night-scene',state.daylight<.25);state.temperature=seasonalTemperature(state.season)+(state.daylight-.5)*3;state.snow=THREE.MathUtils.smoothstep(-state.temperature,-1,5);state.rain=THREE.MathUtils.damp(state.rain,rainTarget,2,dt);state.fog=THREE.MathUtils.damp(state.fog,fogTarget,1.4,dt);windPulse*=Math.exp(-dt*.65);state.windStrength=state.windPaused?0:ENVIRONMENT_LIGHTING.baseWind+windPulse*.9+(weatherSelection.storm?.35:0);state.sunDirection.set(-Math.sin(theta)*.95,Math.max(.2,solar),.55).normalize();sun.position.copy(state.sunDirection).multiplyScalar(16);const lightLevels=sampleEnvironmentLighting(state,stormCloudCoverage);sun.intensity=weatherSelection.sun?lightLevels.sun:0;state.sunIntensity=sun.intensity;sun.color.set(state.hour>16||state.hour<8?0xffbb7b:0xffe6c4);hemi.intensity=lightLevels.sky;state.sunRadiance??=new THREE.Color();state.sunRadiance.copy(sun.color).multiplyScalar(sun.intensity);moon.intensity=.08+(1-state.daylight)*.22;scene.environmentIntensity=lightLevels.environment;
  if(weatherSelection.storm&&state.time-lastManualStrike>=7.5){weather.triggerLightning(null,'weather-toggle');lastManualStrike=state.time;}daylightHandle.update(state);water.prepareFrame?.(dt,state);const outcome=weather.update(dt,state);stormCloudCoverage=outcome.stormCloudCoverage||0;flash=outcome.lightning||0;state.lightning=flash;backdrop.update(state);lightningFill.intensity=flash*6.5;hemi.intensity=lightLevels.sky+flash*1.25;const strike=weather.stats.lastStrike;if(strike?.source){lightning.position.fromArray(strike.source);lightningFill.position.fromArray(strike.source);lightningFill.target.position.fromArray(strike.target);}lightning.intensity=flash*90;state.effectiveRain=Math.max(state.rain,outcome.localRain||0);state.cloudShadows=weather.clouds.filter(c=>c.group.visible).map(c=>({x:c.group.position.x,z:c.group.position.z,y:c.group.position.y,rx:c.mesh.scale.x*1.1,rz:1.2,opacity:c.shadowOpacity??(.16+c.rain*.16)}));const emitters=outcome.emitters||weather.clouds.filter(c=>c.rain>.001).map(c=>({x:c.group.position.x,z:c.group.position.z,y:c.group.position.y,radius:1.15,rate:c.rain}));if(!outcome.emitters&&state.rain>.02)emitters.push({x:0,z:0,y:7,radius:8,rate:state.rain});field.update(dt,state,emitters);state.wetness=field.stats.meanWet;terrain.update(dt,state);vegetation.update(dt,state);props.update(dt,state);for(const event of props.fish.consumeSurfaceEvents?.()||[])water.emitTouch(new THREE.Vector3(event.x,event.y,event.z),event.strength??.22,event.time);weather.updateSmoke(state);water.update(dt,state,camera);fauna.update(dt,state);if(activePointerId===null)controls.update();audio.update(state,outcome);
 }
 // All translucent layers blend in the same linear HDR target. OutputPass owns the single display conversion.
-let postAllowed=true;function renderScene(){bloom.enabled=postAllowed&&flash>.015;composer.render();}
-function render(now){requestAnimationFrame(render);if(document.hidden){lastFrame=now;return;}const realDt=Math.max(0,(now-lastFrame)/1000),dt=Math.min(.05,realDt);lastFrame=now;wallMs=wallMs*.95+realDt*1000*.05;renderQuality.sample(realDt*1000,now);renderer.info.reset();update(state.paused?0:dt);water.beforeRender?.();weather.prepareRender?.();renderScene();frames++;if(frames===1){startup.readyMs=performance.now();setTimeout(()=>audio.autoStart(),0);}if(frames%5===0){syncCycles();const hour=Math.floor(state.hour),min=Math.floor(state.hour%1*60);$('#clock-label').textContent=String(hour).padStart(2,'0')+':'+String(min).padStart(2,'0');$('#weather-label').textContent=['春日','盛夏','深秋','冬日'][Math.round(state.season)%4]+' · '+(state.temperature<0?'雪':state.rain>.3?'雨':state.daylight<.2?'夜':'晴');}}
-window.__MICROCOSM={startup,renderQuality,backdrop,resetEffects,setWindPaused,state,scene,camera,controls,renderer,composer,lighting:{sun,hemi,moon,lightning,lightningFill},audio,vegetationPalette,pondPalette,terrain,world:terrain,vegetation,props,water,fauna,weather,field,daylightHandle,errors,setSeason:selectSeason,setSeasonCycle,setTool,setWeather,setHour:h=>state.hour=h,setPost(enabled){postAllowed=enabled;bloom.enabled=enabled;},simulate(seconds){const n=Math.round(seconds*30),paused=state.paused;state.paused=false;for(let i=0;i<n;i++)update(1/30);state.paused=paused;},stats:()=>({frames,frameTimeMs:wallMs,renderQuality:renderQuality.stats,render:{...renderer.info.render},memory:{...renderer.info.memory},terrain:terrain.stats,vegetation:vegetation.stats,props:props.stats,water:water.stats,fauna:fauna.stats,weather:weather.stats,audio:audio.stats,input:{tool,pointerOwner,activePointerId,orbitEnabled:controls.enableRotate},field:field.stats,route:'INDEPENDENT_IMPLEMENTATION'}),fixed({season=0,hour=15,time=0,rain=0,fog=0}={}){state.paused=true;state.cycle=false;seasonTarget=state.season=season;state.hour=hour;state.time=time;state.rain=rainTarget=rain;state.fog=fogTarget=fog;syncCycles();}};
+let postAllowed=true;function renderScene(){prepareShadow(performance.now());bloom.enabled=postAllowed&&flash>.015;composer.render();}
+function render(now){requestAnimationFrame(render);if(document.hidden){lastFrame=now;return;}
+ if(renderBudget.frameCap){
+  const interval=1000/renderBudget.frameCap;
+  if(nextRecordingFrame!==null&&now+1<nextRecordingFrame)return;
+  // Preserve refresh phase across small delays without queueing catch-up work.
+  nextRecordingFrame=Math.max(now-interval*.5,nextRecordingFrame??now)+interval;
+ }
+ const realDt=Math.max(0,(now-lastFrame)/1000),dt=Math.min(.05,realDt);lastFrame=now;wallMs=wallMs*.95+realDt*1000*.05;renderQuality.sample(realDt*1000,now);renderer.info.reset();update(state.paused?0:dt);updateRenderDetail();water.beforeRender?.();weather.prepareRender?.();renderScene();frames++;if(frames===1){startup.readyMs=performance.now();setTimeout(()=>audio.autoStart(),0);}if(frames%5===0){syncCycles();const hour=Math.floor(state.hour),min=Math.floor(state.hour%1*60);$('#clock-label').textContent=String(hour).padStart(2,'0')+':'+String(min).padStart(2,'0');$('#weather-label').textContent=['春日','盛夏','深秋','冬日'][Math.round(state.season)%4]+' · '+(state.temperature<0?'雪':state.rain>.3?'雨':state.daylight<.2?'夜':'晴');}}
+window.__MICROCOSM={startup,renderQuality,renderBudget,backdrop,resetEffects,setWindPaused,state,scene,camera,controls,renderer,composer,lighting:{sun,hemi,moon,lightning,lightningFill},audio,vegetationPalette,pondPalette,terrain,world:terrain,vegetation,props,water,fauna,weather,field,daylightHandle,errors,setSeason:selectSeason,setSeasonCycle,setTool,setWeather,setHour:h=>state.hour=h,setPost(enabled){postAllowed=enabled;bloom.enabled=enabled;},simulate(seconds){const n=Math.round(seconds*30),paused=state.paused;state.paused=false;for(let i=0;i<n;i++)update(1/30);state.paused=paused;},stats:()=>({frames,frameTimeMs:wallMs,renderQuality:renderQuality.stats,render:{...renderer.info.render},memory:{...renderer.info.memory},terrain:terrain.stats,vegetation:vegetation.stats,props:props.stats,water:water.stats,fauna:fauna.stats,weather:weather.stats,audio:audio.stats,input:{tool,pointerOwner,activePointerId,orbitEnabled:controls.enableRotate},field:field.stats,route:'INDEPENDENT_IMPLEMENTATION'}),fixed({season=0,hour=15,time=0,rain=0,fog=0}={}){state.paused=true;state.cycle=false;seasonTarget=state.season=season;state.hour=hour;state.time=time;state.rain=rainTarget=rain;state.fog=fogTarget=fog;syncCycles();}};
 syncWeather();syncCycles();resize();update(0);await loading(90,'准备云水与光影');
 if(renderer.compileAsync)await renderer.compileAsync(scene,camera);else renderer.compile(scene,camera);
 await loading(97,'完成景观');water.beforeRender?.();weather.prepareRender?.();renderScene();startup.firstLandscapeMs=performance.now();

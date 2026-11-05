@@ -78,8 +78,8 @@ function leafGeometry(needle=false){
   g.computeVertexNormals();return g;
 }
 // Distinct growth habits share rooted wind, not one repeated crossed card.
-function grassGeometry(species=0){
-  const p=[],uv=[],idx=[],blades=[5,6,8,5][species],segments=species===0?2:3;
+function grassGeometry(species=0,compact=false){
+  const p=[],uv=[],idx=[],blades=[5,6,8,5][species],segments=compact?(species===0?1:2):(species===0?2:3);
   for(let k=0;k<blades;k++){
     const angle=k*2.399+species*.71,c=Math.cos(angle),sn=Math.sin(angle),base=p.length/3;
     const h=.58+((k*7)%11)/11*.42,width=[.040,.033,.027,.018][species],spread=(species===0?.07:.025)+(k%3)*(species===0?.08:.022);
@@ -399,7 +399,10 @@ export function createVegetation(scene,{terrain,field=null,seed=42,quality='high
     const mesh=new THREE.InstancedMesh(g,keepMaterial(makePlantMaterial(kind,map,treeFoliage)),data.length),matrix=new THREE.Matrix4(),scale=new THREE.Vector3();mesh.name=name;mesh.castShadow=true;mesh.receiveShadow=true;mesh.frustumCulled=false;mesh.customDepthMaterial=shadowMaterial(kind,map,treeFoliage);
     data.forEach((d,i)=>{scale.setScalar(d.size);matrix.compose(d.p,d.q,scale);mesh.setMatrixAt(i,matrix);mesh.setColorAt(i,d.color);});mesh.instanceMatrix.needsUpdate=true;if(mesh.instanceColor)mesh.instanceColor.needsUpdate=true;group.add(mesh);return mesh;
   }
-  instances(leaves,'leaf',null,'Petiole rooted folded broad leaves',true);instances(needles,'pine',null,'Pendant spruce branchlets with individual geometric needles',true);stats.leafCards=leaves.length;stats.needleSprays=needles.length;
+  instances(leaves,'leaf',null,'Petiole rooted folded broad leaves',true);
+  const spruceMesh=instances(needles,'pine',null,'Pendant spruce branchlets with individual geometric needles',true);
+  const detailVariants=[{mesh:spruceMesh,full:spruceMesh.geometry,create:()=>createConiferNeedleGeometry(true)}];
+  stats.leafCards=leaves.length;stats.needleSprays=needles.length;
   const habitat=createMeadowHabitat(terrain,forest.trees,seed);
   const footpath=createFootpath(habitat,terrain);group.add(footpath.mesh);
   const dummy=new THREE.Object3D();
@@ -444,6 +447,7 @@ export function createVegetation(scene,{terrain,field=null,seed=42,quality='high
     const names=['Fine short meadow fescue','Arching broad meadow grass','Dense uneven sedge tussocks','Tall flowering grass with seed panicles'];
     const mesh=new THREE.InstancedMesh(geo,keepMaterial(makePlantMaterial('grass',null)),matrices.length);mesh.name=names[species];mesh.receiveShadow=true;mesh.castShadow=false;mesh.frustumCulled=false;
     matrices.forEach((matrix,i)=>{mesh.setMatrixAt(i,matrix);mesh.setColorAt(i,colors[i]);});mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true;group.add(mesh);
+    detailVariants.push({mesh,full:geo,create:()=>grassGeometry(species,true)});
     stats.grassClumps+=matrices.length;stats.grassBlades+=matrices.length*[5,6,8,5][species];heights.sort((a,b)=>a-b);
     meadowStats.push({species:names[species],count:matrices.length,blades:[5,6,8,5][species],heightMin:heights[0],heightMedian:heights[Math.floor(heights.length*.5)],heightMax:heights.at(-1),heightRatio:[1,.85,.76,.72][species],attempts});
   }
@@ -483,8 +487,21 @@ export function createVegetation(scene,{terrain,field=null,seed=42,quality='high
   // parent transform without recomposing every static local matrix per pass.
   group.traverse(o=>{o.updateMatrix();o.matrixAutoUpdate=false;if(!o.isMesh)return;const n=o.geometry.index?o.geometry.index.count/3:o.geometry.attributes.position.count/3,inst=o.isInstancedMesh?o.count:1;stats.triangles+=n*inst;stats.vertices+=o.geometry.attributes.position.count*inst;stats.drawCalls++;});
   group.userData.stats=stats;
-  let elapsed=0,disposed=false;
-  return {group,stats,wind:treeMotion,pointerDown:(e,c,v)=>treeMotion.pointerDown(e,c,v),pointerMove:(e,c,v)=>treeMotion.pointerMove(e,c,v),pointerUp:()=>treeMotion.pointerUp(),setLakeSurfaceSampler(fn,compileFn){flora.setLakeSurfaceSampler(fn,compileFn);},get leafLighting(){return {sunDirection:uniforms.uLeafSunDirection.value.toArray(),sunRadiance:uniforms.uLeafSunRadiance.value.toArray(),strength:uniforms.uLeafStrength.value};},debugLeaves(mode=0){uniforms.uLeafDebug.value=Math.max(0,Number(mode)||0);},setLeafCanopyStrength(value=1){uniforms.uLeafStrength.value=clamp(value,0,1);},debugBark(mode=0){uniforms.uBarkDebug.value=Math.max(0,Number(mode)||0);},update(dt=0,state={}){
+  let elapsed=0,disposed=false,compactDetail=false;
+  function setCompactDetail(compact) {
+    if (disposed || compact === compactDetail) return false;
+    for (const variant of detailVariants) {
+      if (compact && !variant.compact) {
+        variant.compact = keepGeometry(variant.create());
+        for (const [name,attribute] of Object.entries(variant.full.attributes))
+          if (attribute.isInstancedBufferAttribute) variant.compact.setAttribute(name,attribute);
+      }
+      variant.mesh.geometry = compact ? variant.compact : variant.full;
+    }
+    compactDetail=compact;
+    return true;
+  }
+  return {group,stats,setCompactDetail,wind:treeMotion,pointerDown:(e,c,v)=>treeMotion.pointerDown(e,c,v),pointerMove:(e,c,v)=>treeMotion.pointerMove(e,c,v),pointerUp:()=>treeMotion.pointerUp(),setLakeSurfaceSampler(fn,compileFn){flora.setLakeSurfaceSampler(fn,compileFn);},get leafLighting(){return {sunDirection:uniforms.uLeafSunDirection.value.toArray(),sunRadiance:uniforms.uLeafSunRadiance.value.toArray(),strength:uniforms.uLeafStrength.value};},debugLeaves(mode=0){uniforms.uLeafDebug.value=Math.max(0,Number(mode)||0);},setLeafCanopyStrength(value=1){uniforms.uLeafStrength.value=clamp(value,0,1);},debugBark(mode=0){uniforms.uBarkDebug.value=Math.max(0,Number(mode)||0);},update(dt=0,state={}){
     if(disposed)return;
     const day=clamp(state.daylight??1,0,1),rain=clamp(state.rain??0,0,1),hour=state.hour??15;
     if(state.sunDirection)uniforms.uLeafSunDirection.value.copy(state.sunDirection).normalize();

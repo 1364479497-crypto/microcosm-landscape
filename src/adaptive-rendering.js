@@ -1,9 +1,10 @@
 // Pixel-ratio policy only: scene complexity, animation and update cadence stay
 // owned by the caller. Time arguments use the same monotonic milliseconds as RAF.
 export const ADAPTIVE_RENDERING_DEFAULTS = Object.freeze({
-  initialRatio: 1.15,
-  minimumRatio: 0.8,
-  smoothRatio: 0.85,
+  initialRatio: 0.85,
+  minimumRatio: 0.55,
+  smoothRatio: 0.72,
+  recordingRatio: 0.72,
   windowMs: 1500,
   warmupMs: 3000,
   cooldownMs: 3000,
@@ -18,7 +19,7 @@ export const ADAPTIVE_RENDERING_DEFAULTS = Object.freeze({
   maximumFrameMs: 250,
 });
 
-const MODES = new Set(['auto', 'clear', 'smooth']);
+const MODES = new Set(['auto', 'clear', 'smooth', 'record']);
 const clock = () => globalThis.performance?.now?.() ?? Date.now();
 const positive = (value, fallback) => Number.isFinite(value) && value > 0 ? value : fallback;
 const timestamp = (value) => Number.isFinite(value) ? value : clock();
@@ -27,17 +28,33 @@ export function createAdaptiveRendering({
   nativePixelRatio = 1,
   maxRatio = 1.5,
   mode = 'auto',
+  viewport = null,
   onRatio = () => {},
+  onMode = () => {},
 } = {}) {
   if (!MODES.has(mode)) throw new TypeError(`Unknown rendering mode: ${mode}`);
-  if (typeof onRatio !== 'function') throw new TypeError('onRatio must be a function');
+  if (typeof onRatio !== 'function' || typeof onMode !== 'function') throw new TypeError('Render callbacks must be functions');
   const config = ADAPTIVE_RENDERING_DEFAULTS;
   let native = positive(nativePixelRatio, 1);
   const maximum = positive(maxRatio, 1.5);
-  let ceiling = Math.min(native, maximum);
-  let floor = Math.min(ceiling, config.minimumRatio);
   let currentMode = mode;
-  let ratio = Math.min(ceiling, mode === 'auto' ? config.initialRatio : mode === 'smooth' ? config.smoothRatio : ceiling);
+  const getCeiling = () => {
+    const device = Math.min(native, maximum);
+    if (currentMode === 'clear' || !viewport) return device;
+    const {width, height} = viewport;
+    if (!(width > 0 && height > 0)) return device;
+    const cap = currentMode === 'record'
+      ? Math.min(1440 / width, 900 / height)
+      : Math.sqrt(1600000 / (width * height));
+    return Math.min(device, cap);
+  };
+  const requestedRatio = () => ({
+    auto: config.initialRatio, clear: ceiling,
+    smooth: config.smoothRatio, record: config.recordingRatio,
+  })[currentMode];
+  let ceiling = getCeiling();
+  let floor = Math.min(ceiling, config.minimumRatio);
+  let ratio = Math.min(ceiling, requestedRatio());
   let armed = false;
   let visible = true;
   let disposed = false;
@@ -46,6 +63,7 @@ export function createAdaptiveRendering({
   let lastSampleAt = null;
   let windowStart = null;
   let samples = [];
+  let windowStalls = 0, clampedSlowSamples = 0;
   let fastWindows = 0;
   let medianMs = null;
   let p90Ms = null;
@@ -55,11 +73,12 @@ export function createAdaptiveRendering({
   let lastChangeAt = null;
   let lastReason = 'initial';
   let classification = 'unmeasured';
-  const ignored = { warmup: 0, hidden: 0, invalid: 0, gap: 0, clock: 0 };
+  const ignored = { warmup: 0, hidden: 0, invalid: 0, clock: 0 };
 
   const clearWindow = () => {
     samples = [];
     windowStart = null;
+    windowStalls = 0;
     fastWindows = 0;
   };
 
@@ -103,7 +122,7 @@ export function createAdaptiveRendering({
         medianMs, p90Ms, lastWindowSamples, evaluatedWindows,
         sampleCount: samples.length, windowStart, warmupUntil,
         fastWindows, nextChangeAt, adjustments, lastChangeAt, lastReason,
-        classification, ignored: Object.freeze({ ...ignored }),
+        classification, clampedSlowSamples, ignored: Object.freeze({ ...ignored }),
       });
     },
 
@@ -122,8 +141,10 @@ export function createAdaptiveRendering({
       now = timestamp(now);
       currentMode = nextMode;
       restart(now, 'mode-change');
-      const next = nextMode === 'clear' ? ceiling : nextMode === 'smooth' ? config.smoothRatio : config.initialRatio;
-      applyRatio(next, now, 'mode-change');
+      ceiling = getCeiling();
+      floor = Math.min(ceiling, config.minimumRatio);
+      applyRatio(requestedRatio(), now, 'mode-change');
+      onMode(currentMode);
       return api;
     },
 
@@ -137,14 +158,15 @@ export function createAdaptiveRendering({
 
     // Use on a viewport/DPR change, including a size change at the same DPR.
     // Auto keeps its current ratio within the new bounds instead of jumping up.
-    resize(nextNativePixelRatio = native, now) {
+    resize(nextNativePixelRatio = native, now, nextViewport = viewport) {
       if (disposed) return api;
       now = timestamp(now);
       native = positive(nextNativePixelRatio, native);
-      ceiling = Math.min(native, maximum);
+      viewport = nextViewport;
+      ceiling = getCeiling();
       floor = Math.min(ceiling, config.minimumRatio);
       restart(now, 'resize');
-      applyRatio(currentMode === 'clear' ? ceiling : currentMode === 'smooth' ? config.smoothRatio : ratio, now, 'resize');
+      applyRatio(currentMode === 'auto' ? ratio : requestedRatio(), now, 'resize');
       return api;
     },
 
@@ -170,17 +192,14 @@ export function createAdaptiveRendering({
         lastSampleAt = null;
         return false;
       }
-      const gap = lastSampleAt !== null && now - lastSampleAt > config.maximumFrameMs;
       lastSampleAt = now;
-      if (frameMs > config.maximumFrameMs || gap) {
-        ignored.gap += 1;
-        clearWindow();
-        return false;
-      }
       if (now < warmupUntil) { ignored.warmup += 1; return false; }
       if (currentMode !== 'auto') return false;
       if (windowStart === null) windowStart = now;
-      samples.push(frameMs);
+      // Keep real visible stalls in the tail distribution. Bounding their
+      // weight avoids treating a single interruption as unlimited frame cost.
+      if (frameMs > config.maximumFrameMs) { windowStalls += 1; clampedSlowSamples += 1; }
+      samples.push(Math.min(frameMs, config.maximumFrameMs));
       // Six samples still allow a valid 4–5 fps stream to lower pixel cost;
       // a high fixed sample count would strand the slowest devices forever.
       if (now - windowStart < config.windowMs || samples.length < 6) return false;
@@ -192,8 +211,9 @@ export function createAdaptiveRendering({
       evaluatedWindows += 1;
       samples = [];
       windowStart = null;
-      classification = medianMs > config.slowMedianMs || p90Ms > config.slowP90Ms ? 'slow'
-        : medianMs < config.fastMedianMs && p90Ms < config.fastP90Ms ? 'fast' : 'balanced';
+      classification = medianMs > config.slowMedianMs || p90Ms > config.slowP90Ms || windowStalls >= 2 ? 'slow'
+        : !windowStalls && medianMs < config.fastMedianMs && p90Ms < config.fastP90Ms ? 'fast' : 'balanced';
+      windowStalls = 0;
       fastWindows = classification === 'fast' ? fastWindows + 1 : 0;
       if (now < nextChangeAt) return false;
       if (classification === 'slow') return applyRatio(ratio - config.decreaseStep, now, 'slow-window');

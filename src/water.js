@@ -11,19 +11,22 @@ export function createWaterCaptureSchedule({colorHz=15,reflectionHz=8}={}){
  function request(now,cameraKey,sceneTime,appearance='',flash=0){
   const cameraChanged=cameraKey!==lastCamera,rewind=Number.isFinite(lastSceneTime)&&sceneTime<lastSceneTime,jump=Number.isFinite(lastSceneTime)&&Math.abs(sceneTime-lastSceneTime)>.5;
   const changed=sceneTime!==lastSceneTime||appearance!==lastAppearance||cameraChanged;colorDirty||=changed;reflectionDirty||=changed;
-  const color=force||cameraChanged||rewind||jump||flash>.04||colorDirty&&now-lastColor>=1/colorHz-1e-6;
-  const reflection=force||rewind||jump||flash>.04||reflectionDirty&&now-lastReflection>=1/reflectionHz-1e-6;
+  const color=force||cameraChanged||rewind||jump||flash>.04||colorDirty&&now-lastColor>=1/stats.colorHz-1e-6;
+  const reflection=force||rewind||jump||flash>.04||reflectionDirty&&now-lastReflection>=1/stats.reflectionHz-1e-6;
   if(color){lastColor=now;colorDirty=false;stats.color++;}if(reflection){lastReflection=now;reflectionDirty=false;stats.reflection++;}if(!color&&!reflection)stats.skipped++;
   lastCamera=cameraKey;lastSceneTime=sceneTime;lastAppearance=appearance;force=false;return{color,reflection,cameraChanged};
  }
- return{stats,request,invalidate(){force=true;}};
+ return {stats,request,invalidate(){force=true;},setRates(color,reflection){
+  if (stats.colorHz === color && stats.reflectionHz === reflection) return;
+  stats.colorHz=color;stats.reflectionHz=reflection;force=true;
+ }};
 }
 
 // Independently authored bounded optics: scene/depth refraction, a mirrored
 // camera, matched analytic surface normals, local rain and an exposed cutaway.
 export function createWater(scene, lake, {renderer,camera,terrain,field,bedHeightAt,receivers=[]}={}) {
  const group=new THREE.Group();group.name='Watershed';scene.add(group);
- const baseLevel=lake.level,level=createPondLevel({base:baseLevel,spill:baseLevel+.09}),schedule=createWaterCaptureSchedule();lake.currentLevel=baseLevel;lake.spillLevel=level.stats.spill;let preparedTime=NaN,lastState={},cssWidth=960,cssHeight=600,closeCapture=false;
+ const baseLevel=lake.level,level=createPondLevel({base:baseLevel,spill:baseLevel+.09}),schedule=createWaterCaptureSchedule();lake.currentLevel=baseLevel;lake.spillLevel=level.stats.spill;let preparedTime=NaN,lastState={},cssWidth=960,cssHeight=600,closeCapture=false,captureScale=1;
  const colorRT=new THREE.WebGLRenderTarget(960,600,{type:THREE.HalfFloatType});colorRT.depthTexture=new THREE.DepthTexture(960,600,THREE.UnsignedIntType);
  const reflectionRT=new THREE.WebGLRenderTarget(640,400,{type:THREE.HalfFloatType}),reflectionCamera=new THREE.PerspectiveCamera();
  reflectionRT.depthTexture=new THREE.DepthTexture(640,400,THREE.UnsignedIntType);
@@ -210,8 +213,13 @@ export function createWater(scene, lake, {renderer,camera,terrain,field,bedHeigh
   }running.setCloudOcclusion?.(binding);touch.setCloudOcclusion(binding);stats.cloudOcclusion=!!binding;
  }
  function reset(){caustics.reset();touch.reset();level.reset();preparedTime=NaN;lake.currentLevel=baseLevel;uniforms.uLakeLevel.value=baseLevel;uniforms.uOpticsDebug.value=0;schedule.invalidate();}
- function captureSize(){const ratio=renderer.getPixelRatio?.()??1,scale=closeCapture?.95:.75,w=Math.min(1800,Math.round(cssWidth*ratio*scale)),h=Math.round(w*cssHeight/cssWidth),rw=Math.min(900,Math.round(cssWidth*ratio*.4)),rh=Math.round(rw*cssHeight/cssWidth);let changed=false;if(colorRT.width!==w||colorRT.height!==h){colorRT.setSize(w,h);changed=true;}if(reflectionRT.width!==rw||reflectionRT.height!==rh){reflectionRT.setSize(rw,rh);changed=true;}if(changed)schedule.invalidate();stats.captureResolution.color=[colorRT.width,colorRT.height];stats.captureResolution.reflection=[reflectionRT.width,reflectionRT.height];}
- return {group,level,caustics,touch,pickSurface,setInputOccluders(objects=[]){inputOccluders=objects.filter(Boolean);},touchSurface,emitTouch(point,strength=1,time=uniforms.uTime.value){return touch.emit(point,time,strength);},prepareFrame,reset,setCloudOcclusion,getSceneDepth(){return colorRT.depthTexture;},setCaptureExclusions(objects=[]){captureExclusions=[...new Set(objects.filter(Boolean))];schedule.invalidate();},flow:running.flow,running,stats,
+ function captureSize(){const ratio=renderer.getPixelRatio?.()??1,scale=closeCapture?.95:.75,w=Math.max(1,Math.min(1800,Math.round(cssWidth*ratio*scale*captureScale))),h=Math.max(1,Math.round(w*cssHeight/cssWidth)),rw=Math.max(1,Math.min(900,Math.round(cssWidth*ratio*.4*captureScale))),rh=Math.max(1,Math.round(rw*cssHeight/cssWidth));let changed=false;if(colorRT.width!==w||colorRT.height!==h){colorRT.setSize(w,h);changed=true;}if(reflectionRT.width!==rw||reflectionRT.height!==rh){reflectionRT.setSize(rw,rh);changed=true;}if(changed)schedule.invalidate();stats.captureResolution.color=[colorRT.width,colorRT.height];stats.captureResolution.reflection=[reflectionRT.width,reflectionRT.height];}
+ return {group,level,caustics,touch,pickSurface,setInputOccluders(objects=[]){inputOccluders=objects.filter(Boolean);},touchSurface,emitTouch(point,strength=1,time=uniforms.uTime.value){return touch.emit(point,time,strength);},prepareFrame,reset,setCloudOcclusion,getSceneDepth(){return colorRT.depthTexture;},
+ invalidateCaptures(){schedule.invalidate();},
+ setRenderBudget({colorHz,reflectionHz,waterScale}){
+  schedule.setRates(colorHz,reflectionHz);
+  if(captureScale!==waterScale){captureScale=waterScale;captureSize();}
+ },setCaptureExclusions(objects=[]){captureExclusions=[...new Set(objects.filter(Boolean))];schedule.invalidate();},flow:running.flow,running,stats,
  sampleFlowSurface(x,z,time=uniforms.uTime.value,wind=uniforms.uWind.value){return running.renderedHeight(x,z,time,wind);},
  setFlowDebug(mode=0){running.setDebug(mode);},
  setOpticsDebug(mode=0){uniforms.uOpticsDebug.value=THREE.MathUtils.clamp(Number(mode)||0,0,7);schedule.invalidate();},
