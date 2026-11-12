@@ -25,7 +25,9 @@ const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],par
 const startup={moduleStartMs:performance.now(),stages:[],progress:[],firstLandscapeMs:null,readyMs:null};const stage=(name,start)=>startup.stages.push({name,ms:performance.now()-start,at:performance.now()});
 let storedRenderMode='auto';try{storedRenderMode=localStorage.getItem('microcosm.render-mode')||'auto';}catch{}
 const requestedRenderMode=params.get('render')||storedRenderMode;
-const renderQuality=createAdaptiveRendering({nativePixelRatio:devicePixelRatio,maxRatio:quality==='high'?1.5:1,mode:['auto','clear','smooth','record'].includes(requestedRenderMode)?requestedRenderMode:'auto',viewport:{width:innerWidth,height:innerHeight},onRatio:applyRenderRatio,onMode:applyRenderBudget});
+const world = $('#world');
+const viewport = { width: world.clientWidth, height: world.clientHeight };
+const renderQuality=createAdaptiveRendering({nativePixelRatio:devicePixelRatio,maxRatio:quality==='high'?1.5:1,mode:['auto','clear','smooth','record'].includes(requestedRenderMode)?requestedRenderMode:'auto',viewport,onRatio:applyRenderRatio,onMode:applyRenderBudget});
 const errors=[];function failure(message){errors.push(message);$('#loading')?.remove();$('#failure').textContent='景观启动失败：'+message;$('#failure').classList.remove('hidden');}window.addEventListener('error',e=>failure(e.message));window.addEventListener('unhandledrejection',e=>failure(e.reason?.message||String(e.reason)));
 async function loading(value,label){const el=$('#loading-progress');if(el)el.value=value;const percent=$('#loading-percent');if(percent)percent.textContent=value+'%';const phase=$('#loading-stage');if(phase)phase.textContent=label;startup.progress.push({value,label,at:performance.now()});await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));}
 await loading(5,'准备山居');
@@ -36,8 +38,8 @@ let seasonTarget=0,rainTarget=0,fogTarget=0,windPulse=0,flash=0,tool='orbit',fra
 const scene=new THREE.Scene();scene.background=new THREE.Color('#201e19');scene.fog=new THREE.FogExp2('#201e19',.013);
 // Scene edges are multisampled in the HDR composition target; the default
 // framebuffer only receives a fullscreen OutputPass, so it needs no second MSAA.
-const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance',preserveDrawingBuffer:false});renderer.setPixelRatio(renderQuality.ratio);renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.95;renderer.info.autoReset=false;$('#world').append(renderer.domElement);
-const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.1,90);camera.position.set(8.0,10.0,20.8);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,1.55,-.35);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=2.5;controls.maxDistance=40;controls.zoomToCursor=true;controls.zoomSpeed=1.15;controls.rotateSpeed=.7;controls.maxPolarAngle=1.48;controls.minPolarAngle=.3;
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'high-performance',preserveDrawingBuffer:false});renderer.setPixelRatio(renderQuality.ratio);renderer.setSize(viewport.width, viewport.height, false);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.95;renderer.info.autoReset=false;world.append(renderer.domElement);
+const camera=new THREE.PerspectiveCamera(35,viewport.width / viewport.height,.1,90);camera.position.set(8.0,10.0,20.8);const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,1.55,-.35);controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=2.5;controls.maxDistance=40;controls.zoomToCursor=true;controls.zoomSpeed=1.15;controls.rotateSpeed=.7;controls.maxPolarAngle=1.48;controls.minPolarAngle=.3;
 const pmrem=new THREE.PMREMGenerator(renderer),environment=pmrem.fromScene(new RoomEnvironment(),.025);scene.environment=environment.texture;scene.environmentIntensity=.13;pmrem.dispose();
 const hemi=new THREE.HemisphereLight(0xc4d6df,0x4a3b27,.65);scene.add(hemi);const sun=new THREE.DirectionalLight(0xffe0ac,3.0);sun.position.set(-8,11,6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-8.5,right:8.5,top:9,bottom:-8,near:.1,far:35});sun.shadow.normalBias=ENVIRONMENT_LIGHTING.shadowNormalBias;sun.shadow.bias=-.00013;sun.shadow.radius=ENVIRONMENT_LIGHTING.shadowRadius;sun.shadow.intensity=ENVIRONMENT_LIGHTING.shadowStrength;scene.add(sun);const moon=new THREE.DirectionalLight(0x94b9ed,.12);moon.position.set(-3,8,-4);scene.add(moon);const lightning=new THREE.PointLight(0xc2ddff,0,26,1.6);lightning.position.set(0,7,0);scene.add(lightning);const lightningFill=new THREE.DirectionalLight(0xdceaff,0);lightningFill.position.set(-2,10,3);scene.add(lightningFill,lightningFill.target);
 const backdrop=createSceneBackdrop(scene,{renderer});
@@ -64,13 +66,13 @@ weather.setLakeSurfaceSampler?.((x,z,time,wind)=>water.sampleSurfaceHeight(x,z,t
 weather.setFlowSurfaceSampler?.((x,z,time,wind)=>water.sampleFlowSurface?.(x,z,time,wind));
 water.setCloudOcclusion?.(weather.getCloudOcclusion?.());
 const daylightHandle=createDaylightHandle(scene,camera,renderer.domElement,h=>{state.hour=h;state.dayCycle=false;$('#time').value=h;syncCycles();});
-const compositionTarget=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType,samples:0});
-const composer=new EffectComposer(renderer,compositionTarget);composer.setSize(innerWidth,innerHeight);const scenePass=new SharedOpaquePass(scene,camera,water,[water.group,...weather.captureExclusions]);composer.addPass(scenePass);const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.12,.35,1.7);composer.addPass(bloom);
+const compositionTarget=new THREE.WebGLRenderTarget(viewport.width, viewport.height,{type:THREE.HalfFloatType,samples:0});
+const composer=new EffectComposer(renderer,compositionTarget);composer.setSize(viewport.width, viewport.height);const scenePass=new SharedOpaquePass(scene,camera,water,[water.group,...weather.captureExclusions]);composer.addPass(scenePass);const bloom=new UnrealBloomPass(new THREE.Vector2(viewport.width, viewport.height),.12,.35,1.7);composer.addPass(bloom);
 // Keep landscape detail readable throughout orbit and zoom. A fixed screen-space
 // focus band blurred the waterfall and mountain peaks as they crossed the frame.
 const edgeAA=new SMAAPass();composer.addPass(edgeAA);
 composer.addPass(new OutputPass());
-function applyRenderRatio(ratio){renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);water.resize?.(innerWidth,innerHeight);}
+function applyRenderRatio(ratio){renderer.setPixelRatio(ratio);composer.setPixelRatio(ratio);water.resize?.(viewport.width, viewport.height);}
 const renderBudgets = {
   clear:  {shadowHz: Infinity, colorHz: 15, reflectionHz: 8, waterScale: 1},
   auto:   {shadowHz: 12, colorHz: 12, reflectionHz: 6, waterScale: 1},
@@ -172,7 +174,28 @@ function setWeather(name,enabled=true){
  if(!(name in weatherSelection))return;weatherSelection[name]=Boolean(enabled);if(name==='rain'&&!enabled)weather.clearRain();if(name==='storm'){if(enabled){weather.triggerLightning(null,'weather-toggle');lastManualStrike=state.time;}else weather.clearLightning();}syncWeather();
 }
 $$('[data-weather]').forEach(b=>b.onclick=()=>setWeather(b.dataset.weather,!weatherSelection[b.dataset.weather]));
-$('#reset').onclick=resetView;$('#wind-toggle').onclick=()=>setWindPaused(!state.windPaused);$('#reset-effects').onclick=resetEffects;$('#capture').onclick=()=>{renderScene();const a=document.createElement('a');a.download='世外桃源.png';a.href=renderer.domElement.toDataURL();a.click();};$('#fullscreen').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen();window.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.repeat||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName)||e.target?.isContentEditable)return;if(e.key.toLowerCase()==='h')document.body.classList.toggle('ui-hidden');if(e.key==='Escape')release({});});
+$('#reset').onclick=resetView;$('#wind-toggle').onclick=()=>setWindPaused(!state.windPaused);$('#reset-effects').onclick=resetEffects;$('#capture').onclick=()=>{renderScene();const a=document.createElement('a');a.download='世外桃源.png';a.href=renderer.domElement.toDataURL();a.click();};
+const fullscreenButton = $('#fullscreen');
+fullscreenButton.hidden = !document.fullscreenEnabled;
+fullscreenButton.onclick = async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.documentElement.requestFullscreen();
+  } catch (error) {
+    console.warn('当前页面无法进入全屏', error);
+  }
+};
+const dockButtons = $$('[data-panel]');
+dockButtons.forEach(button => {
+  button.onclick = () => {
+    for (const item of dockButtons) {
+      const active = item === button;
+      item.setAttribute('aria-pressed', String(active));
+      document.getElementById(item.dataset.panel).classList.toggle('dock-active', active);
+    }
+  };
+});
+window.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.repeat||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName)||e.target?.isContentEditable)return;if(e.key.toLowerCase()==='h')document.body.classList.toggle('ui-hidden');if(e.key==='Escape')release({});});
 function resetView(){cancelOrbit();camera.position.set(8,10,20.8);controls.target.set(0,1.55,-.35);stopCameraInertia();controls.update();}
 function setWindPaused(value){state.windPaused=Boolean(value);if(state.windPaused){windPulse=0;state.windStrength=0;field.clearWind();weather.clearWind?.();}else state.windStrength=ENVIRONMENT_LIGHTING.baseWind;const button=$('#wind-toggle');button.setAttribute('aria-pressed',String(state.windPaused));(button.querySelector('span')||button).textContent=state.windPaused?'恢复风':'暂停风';}
 function resetEffects(){tapCandidate=null;cancelOrbit();release({});touchPoints.clear();weather.reset?.();field.reset();water.reset?.();audio.resetEffects?.();
@@ -181,7 +204,29 @@ function resetEffects(){tapCandidate=null;cancelOrbit();release({});touchPoints.
  setWindPaused(false);selectSeason(0);setTool('orbit');$('#time').value=15;$('#cycle').setAttribute('aria-pressed','false');$('#day-cycle').setAttribute('aria-pressed','false');syncWeather();syncCycles();resetView();update(0);water.touch.reset();props.fish.consumeSurfaceEvents?.();
 }
 
-function resize(){renderQuality.resize(devicePixelRatio,performance.now(),{width:innerWidth,height:innerHeight});camera.aspect=innerWidth/innerHeight;camera.fov=camera.aspect<1?THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(35)*.5)/camera.aspect)):35;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);water.resize?.(innerWidth,innerHeight);daylightHandle.setOccluders($$('.side-left,.side-right,.masthead,.top-actions').map(el=>{const r=el.getBoundingClientRect();return{left:r.left,right:r.right,top:r.top,bottom:r.bottom};}));}window.addEventListener('resize',resize);
+function resize() {
+  const width = world.clientWidth;
+  const height = world.clientHeight;
+  if (!width || !height) return;
+  viewport.width = width;
+  viewport.height = height;
+  renderQuality.resize(devicePixelRatio, performance.now(), viewport);
+  camera.aspect = width / height;
+  // Preserve room for the front corner of the terrain on narrow canvases.
+  const horizontalHalfFov = THREE.MathUtils.degToRad(39) / 2;
+  const verticalFov = 2 * Math.atan(Math.tan(horizontalHalfFov) / camera.aspect);
+  camera.fov = Math.max(35, THREE.MathUtils.radToDeg(verticalFov));
+  camera.updateProjectionMatrix();
+  renderer.setSize(width, height, false);
+  composer.setSize(width, height);
+  water.resize?.(width, height);
+  daylightHandle.setOccluders($$('.side-left,.side-right,.masthead,.top-actions').map(el => {
+    const { left, right, top, bottom } = el.getBoundingClientRect();
+    return { left, right, top, bottom };
+  }));
+}
+window.addEventListener('resize', resize);
+new ResizeObserver(resize).observe(world);
 function update(dt){
  if(!state.paused){state.time+=dt;if(state.cycle){state.season=advanceSeason(state.season,dt,true);seasonTarget=state.season;}let delta=((seasonTarget-state.season+6)%4)-2;if(Math.abs(delta+2)<1e-6)delta=2;if(!state.cycle&&Math.abs(delta)<.002){state.season=seasonTarget;delta=0;}state.season=(state.season+delta*(1-Math.exp(-dt*1.8))+4)%4;if(state.dayCycle)state.hour=(state.hour+dt*.12)%24;}
  const theta=(state.hour-12)/12*Math.PI,solar=Math.cos(theta);state.daylight=THREE.MathUtils.smoothstep(solar,-.12,.4);document.body.classList.toggle('night-scene',state.daylight<.25);state.temperature=seasonalTemperature(state.season)+(state.daylight-.5)*3;state.snow=THREE.MathUtils.smoothstep(-state.temperature,-1,5);state.rain=THREE.MathUtils.damp(state.rain,rainTarget,2,dt);state.fog=THREE.MathUtils.damp(state.fog,fogTarget,1.4,dt);windPulse*=Math.exp(-dt*.65);state.windStrength=state.windPaused?0:ENVIRONMENT_LIGHTING.baseWind+windPulse*.9+(weatherSelection.storm?.35:0);state.sunDirection.set(-Math.sin(theta)*.95,Math.max(.2,solar),.55).normalize();sun.position.copy(state.sunDirection).multiplyScalar(16);const lightLevels=sampleEnvironmentLighting(state,stormCloudCoverage);sun.intensity=weatherSelection.sun?lightLevels.sun:0;state.sunIntensity=sun.intensity;sun.color.set(state.hour>16||state.hour<8?0xffbb7b:0xffe6c4);hemi.intensity=lightLevels.sky;state.sunRadiance??=new THREE.Color();state.sunRadiance.copy(sun.color).multiplyScalar(sun.intensity);moon.intensity=.08+(1-state.daylight)*.22;scene.environmentIntensity=lightLevels.environment;

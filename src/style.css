@@ -14,6 +14,9 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; overflow: hidden; }
+.scene-header, .control-dock { display: contents; }
+.dock-navigation { display: none; }
+#fullscreen[hidden] { display: none; }
 button, input { font: inherit; }
 button {
   cursor: pointer;
@@ -375,62 +378,6 @@ body.ui-hidden .ui * { pointer-events: none !important; }
   .top-actions .icon-button { width: 25px; justify-content: center; }
   .top-actions .icon-button > span { display: none; }
 }
-@media (max-width: 600px) {
-  :root { --edge: 20px; }
-  .masthead { top: 22px; }
-  .masthead h1 { font-size: 38px; }
-  .top-actions { top: 76px; left: var(--edge); right: var(--edge); gap: 12px; justify-content: space-between; }
-  .top-actions svg { width: 19px; height: 19px; }
-  .icon-button, .sound-toggle { min-height: 32px; font-size: 10px; }
-  .sound-controls { gap: 9px; }
-  .sound-controls input { width: 40px; }
-  .side-left { top: 143px; bottom: max(25px, env(safe-area-inset-bottom)); gap: 26px; grid-template-rows: 330px auto; }
-  .side-right { top: 143px; gap: 22px; }
-  .side-left { width: 128px; }
-  .side-right { width: 77px; }
-  .rail-heading { margin-bottom: 14px; font-size: 14px; }
-  .season-tabs { gap: 16px; }
-  .season-tabs button { gap: 8px; min-width: 66px; padding-bottom: 7px; }
-  .season-tabs button > span { font-size: 35px; }
-  .season-tabs button small { font-size: 9px; width: 12px; }
-  .season-tabs button.active::after { left: 20px; width: 22px; height: 2px; }
-  .season-cycle { width: 116px; margin-top: 17px; }
-  .cycle-button { font-size: 11px; }
-  #cycle-status { font-size: 9px; }
-  .day-panel { width: 128px; }
-  .day-panel .rail-heading { margin-bottom: 12px; }
-  #clock-label { font-size: 28px; letter-spacing: -1.5px; }
-  .day-control { gap: 5px; margin-top: 9px; }
-  .day-control input, .day-stops { width: 99px; }
-  .day-stops { font-size: 9px; }
-  .weather-tools, .tools { gap: 4px; }
-  .weather-tools button, .tools button, .wind-toggle { min-width: 65px; min-height: 29px; gap: 8px; font-size: 12px; }
-  .weather-tools button svg, .tools button svg, .wind-toggle svg { width: 19px; height: 19px; }
-  .weather-tools button.active::after { width: 4px; height: 4px; top: 12px; right: 0; }
-  .interaction-rail .rail-heading { margin-bottom: 10px; }
-  .wind-toggle, .tools button { font-size: 11px; }
-  .tools button.active::after { left: 27px; width: 20px; }
-  .loading-card { width: 220px; }
-  .loading-card h2 { font-size: 36px; }
-  .loading-progress-row { font-size: 10px; }
-  #failure { inset: 13%; padding: 22px; }
-}
-@media (max-width: 359px) {
-  :root { --edge: 16px; }
-  .masthead h1 { font-size: 34px; }
-  .top-actions { top: 68px; }
-  .side-left { top: 129px; gap: 22px; grid-template-rows: 302px auto; }
-  .side-right { top: 129px; gap: 20px; }
-  .side-left { width: 111px; }
-  .side-right { width: 70px; }
-  .season-tabs { gap: 12px; }
-  .season-tabs button > span { font-size: 31px; }
-  .season-cycle { width: 105px; }
-  .day-panel { width: 111px; }
-  #clock-label { font-size: 26px; }
-  .day-control input, .day-stops { width: 82px; }
-  .sound-controls input { width: 33px; }
-}
 @media (max-height: 560px) and (min-width: 601px) {
   :root { --edge: 22px; }
   .masthead { top: 19px; }
@@ -501,4 +448,173 @@ body.night-scene .sound-controls:has([aria-pressed="false"]) input { opacity: .4
 .quality-control select:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 body.night-scene .quality-control select { color-scheme:dark; }
 @media(max-width:1000px){ .quality-control {font-size:11px;} .quality-control>span {display:none;} }
-@media(max-width:600px){ .quality-control {font-size:10px;} .top-actions {gap:9px;} .sound-controls input {width:30px;} }
+
+/* On phones and narrow embeds, the canvas and controls use separate grid cells. */
+@media (max-width: 600px), (max-width: 850px) and (orientation: portrait),
+       (max-width: 1000px) and (max-height: 560px) and (orientation: landscape) {
+  body {
+    display: grid;
+    grid-template: "header" auto "scene" minmax(0, 1fr) "dock" auto / minmax(0, 1fr);
+    height: 100vh;
+    height: 100dvh;
+    background: var(--paper);
+  }
+  .scene-header {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    column-gap: 12px;
+    padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px))
+      0 max(12px, env(safe-area-inset-left, 0px));
+  }
+  .masthead, .top-actions { position: static; }
+  .masthead { padding-block: 9px 3px; }
+  .masthead h1 { font-size: 25px; }
+  .top-actions { flex: 1 0 auto; justify-content: flex-end; gap: 3px; }
+  .top-actions .icon-button, .sound-toggle {
+    justify-content: center;
+    width: 40px;
+    height: 44px;
+  }
+  .top-actions button > span { display: none; }
+  .top-actions svg { width: 19px; height: 19px; }
+  .sound-controls { gap: 2px; }
+  .sound-controls input { width: 30px; }
+  .quality-control { font-size: 12px; }
+  .quality-control select { min-height: 44px; }
+  #world { grid-area: scene; position: relative; inset: auto; }
+  #world, #world canvas { width: 100%; height: 100%; min-width: 0; min-height: 0; }
+
+  .control-dock {
+    grid-area: dock;
+    display: grid;
+    grid-template-rows: 44px 74px;
+    align-content: center;
+    padding: 0 max(12px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px)
+      max(12px, env(safe-area-inset-left, 0px));
+    background: var(--paper);
+  }
+  .dock-navigation {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-bottom: 1px solid var(--line);
+  }
+  .dock-navigation button {
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+  }
+  .dock-navigation button[aria-pressed="true"] {
+    border-color: var(--accent);
+    font-weight: 650;
+    color: var(--ink);
+  }
+  .side-left, .side-right { display: contents; }
+  .control-dock section { display: none; width: auto; }
+  .control-dock section.dock-active {
+    display: grid;
+    align-content: center;
+    min-width: 0;
+    padding-block: 4px;
+    background: none;
+    box-shadow: none;
+  }
+  .control-dock .rail-heading,
+  .control-dock .season-tabs small,
+  .control-dock .day-stops { display: none; }
+  .control-dock button:focus-visible, .control-dock input:focus-visible,
+  .scene-header button:focus-visible, .scene-header input:focus-visible {
+    outline-offset: -2px;
+  }
+  .season-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; }
+  .season-tabs button {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0;
+  }
+  .season-tabs button > span { font-size: 20px; }
+  .season-tabs button.active::after { left: calc(50% - 8px); width: 16px; height: 2px; bottom: 7px; }
+  .season-rail.dock-active { grid-template-columns: minmax(0, 1fr) 86px; gap: 8px; }
+  .season-cycle { display: grid; align-content: center; width: auto; margin: 0; }
+  .cycle-button { min-height: 44px; gap: 4px; letter-spacing: 0; font-size: 11px; }
+  #cycle-status { margin: -4px 0 3px; font-size: 9px; }
+  #cycle-progress { height: 2px; }
+
+  .day-panel.dock-active {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 15px;
+  }
+  #clock-label { font-size: 23px; letter-spacing: 0; }
+  .day-control { gap: 10px; margin: 0; }
+  .day-control button { width: 44px; height: 44px; }
+  .day-control input {
+    flex: 1;
+    width: 0;
+    height: 32px;
+    min-width: 0;
+    background: transparent;
+  }
+  .sound-controls input[type="range"] { height: 32px; background: transparent; }
+  .sound-controls input::-webkit-slider-thumb { margin-top: -2.5px; }
+  .day-control input::-webkit-slider-runnable-track,
+  .sound-controls input::-webkit-slider-runnable-track { height: 2px; background: var(--line); }
+  .day-control input::-webkit-slider-thumb { margin-top: -5px; }
+  .day-control input::-moz-range-track,
+  .sound-controls input::-moz-range-track { height: 2px; background: var(--line); }
+
+  .weather-tools, .tools { display: grid; gap: 0; }
+  .weather-tools { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .interaction-rail.dock-active { grid-template-columns: minmax(0, 5fr) minmax(0, 1fr); }
+  .tools { grid-column: 1; grid-row: 1; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .wind-toggle { grid-column: 2; grid-row: 1; margin: 0; }
+  .weather-tools button, .tools button, .wind-toggle {
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 100%;
+    min-width: 0;
+    min-height: 50px;
+    font-size: 11px;
+  }
+  .weather-tools button svg, .tools button svg, .wind-toggle svg { width: 18px; height: 18px; }
+  .weather-tools button.active::after {
+    top: 7px;
+    right: calc(50% - 14px);
+    width: 4px;
+    height: 4px;
+  }
+  .tools button.active::after { left: calc(50% - 7px); width: 14px; bottom: 0; }
+  body.night-scene .top-actions,
+  body.night-scene .control-dock section.dock-active { background: none; box-shadow: none; }
+  body.night-scene .day-control input,
+  body.night-scene .sound-controls input { background: transparent; }
+  body.night-scene .weather-tools button.active, body.night-scene .tools button.active,
+  body.night-scene .wind-toggle[aria-pressed="true"], body.night-scene .cycle-button[aria-pressed="true"] {
+    color: #ff9875;
+  }
+  body.ui-hidden .scene-header, body.ui-hidden .control-dock { display: none; }
+  #failure { inset: 13%; padding: 22px; }
+}
+@media (max-width: 600px) {
+  .top-actions { justify-content: space-between; }
+}
+@media (max-width: 420px) {
+  .top-actions { flex-basis: 100%; }
+}
+@media (max-width: 1000px) and (max-height: 560px) and (orientation: landscape) {
+  body {
+    grid-template: "header header" auto "scene dock" minmax(0, 1fr)
+      / minmax(0, 1fr) clamp(214px, 31vw, 282px);
+  }
+  .masthead { padding-block: 4px; }
+  .top-actions { flex-basis: auto; justify-content: flex-end; }
+  .control-dock { grid-template-rows: 44px minmax(76px, auto); padding-left: 8px; }
+  .interaction-rail.dock-active { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); }
+  .tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .wind-toggle { align-self: center; }
+}
