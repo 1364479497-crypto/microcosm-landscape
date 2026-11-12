@@ -1,11 +1,11 @@
 {
-  "appVersion": "2.3.14",
+  "appVersion": "2.3.15",
   "threeVersion": "0.187.0",
   "backend": "WebGL2",
   "files": {
     "index.html": {
-      "sha256": "6744544d3624900f9d99c0e78103ea9e16c98483a15769a6417de10c631ea34f",
-      "bytes": 11265
+      "sha256": "e48714cf09c0dab366c91bd0f30ca003222ef4ccc9c76ec492f87a55c65abd7a",
+      "bytes": 12050
     },
     "src/water-surface.js": {
       "sha256": "c84c13c2d3f87b515803ce561f7cba43d93ca1be58c44a1438660310aab4f2d3",
@@ -136,8 +136,8 @@
       "bytes": 7229
     },
     "src/main.js": {
-      "sha256": "63e2d37057bbb2530448614703f90c585ca75302418a25353b4329bb016ded4c",
-      "bytes": 30436
+      "sha256": "61341df05d1a20dfeb99a26f53f60d275c4e00ae872477d94b9cee24e1672fde",
+      "bytes": 31999
     },
     "src/terrain-field.js": {
       "sha256": "8cd25f9387be064ce5bdd6865f19f936176f33cca6ea2d8054825658786b0e4c",
@@ -164,8 +164,8 @@
       "bytes": 2348
     },
     "src/style.css": {
-      "sha256": "90548032c7da991509c4404db71b60d428df912e1eac97b0c36e284f859989c9",
-      "bytes": 21098
+      "sha256": "350356c3528a2aea24c27d0b8ec66791c2273af34c912b16c31c63d8bf886427",
+      "bytes": 23653
     },
     "src/tree-growth.js": {
       "sha256": "c51b8e9ea9defe3eb9cd03588a061bae37fe664a00288861be328117c8a22ca4",
@@ -376,7 +376,7 @@
       "bytes": 15002
     },
     "package.json": {
-      "sha256": "caa5635efe5e2fbf6885504e9797c443d111890ea3b1ec8831349ac9df3956f6",
+      "sha256": "52b39171d6c507880023436e3ce46982dff83c2876742ef818433e76370e28a8",
       "bytes": 264
     },
     "assets/opening-portrait.webp": {

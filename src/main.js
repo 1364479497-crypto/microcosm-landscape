@@ -119,12 +119,51 @@ function prepareShadow(now) {
     renderBudget.shadowUpdates++;
   }
 }
-const qualityControl=$('#render-quality');
-qualityControl.value=renderQuality.mode;
-qualityControl.onchange=e=>{
-  renderQuality.setMode(e.target.value,performance.now());
-  try{localStorage.setItem('microcosm.render-mode',renderQuality.mode);}catch{}
-};
+const qualityControl = $('#render-quality');
+const qualityPicker = $('.quality-picker');
+const qualityTrigger = $('#quality-trigger');
+const qualityOptions = $('#quality-options');
+const qualityButtons = $$('[data-render-mode]');
+
+function syncQualityControls() {
+  qualityControl.value = renderQuality.mode;
+  $('#quality-value').textContent = qualityControl.selectedOptions[0].textContent;
+  for (const button of qualityButtons) {
+    button.setAttribute('aria-pressed', String(button.dataset.renderMode === renderQuality.mode));
+  }
+}
+
+function selectQuality(mode) {
+  renderQuality.setMode(mode, performance.now());
+  syncQualityControls();
+  try { localStorage.setItem('microcosm.render-mode', renderQuality.mode); } catch {}
+}
+
+function setQualityOptionsOpen(open, restoreFocus = false) {
+  qualityOptions.hidden = !open;
+  qualityTrigger.setAttribute('aria-expanded', String(open));
+  if (open) qualityOptions.querySelector('[aria-pressed="true"]').focus();
+  else if (restoreFocus) qualityTrigger.focus();
+}
+
+syncQualityControls();
+qualityControl.onchange = event => selectQuality(event.target.value);
+qualityTrigger.onclick = () => setQualityOptionsOpen(qualityOptions.hidden);
+for (const button of qualityButtons) {
+  button.onclick = () => {
+    selectQuality(button.dataset.renderMode);
+    setQualityOptionsOpen(false, true);
+  };
+}
+document.addEventListener('pointerdown', event => {
+  if (!qualityOptions.hidden && !qualityPicker.contains(event.target)) setQualityOptionsOpen(false);
+});
+qualityPicker.addEventListener('focusout', event => {
+  if (!qualityOptions.hidden && !qualityPicker.contains(event.relatedTarget)) setQualityOptionsOpen(false);
+});
+qualityPicker.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !qualityOptions.hidden) setQualityOptionsOpen(false, true);
+});
 applyRenderBudget();
 document.addEventListener('visibilitychange',()=>{renderQuality.setVisible(!document.hidden,performance.now());nextRecordingFrame=null;});
 function setTool(t){if(activePointerId!==null)release({});tool=t;weather.setTool(t);controls.enableRotate=t==='orbit'||t==='cloud';controls.enablePan=true;$$('[data-tool]').forEach(b=>{b.classList.toggle('active',b.dataset.tool===t);b.setAttribute('aria-pressed',String(b.dataset.tool===t));});}
