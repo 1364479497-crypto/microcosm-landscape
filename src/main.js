@@ -22,15 +22,15 @@ import {createWeatherSelection,advanceSeason,describeSeason,SEASONS} from './sce
 import {createAdaptiveRendering} from './adaptive-rendering.js';
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],params=new URLSearchParams(location.search),seed=Number(params.get('seed')||42),quality=params.get('quality')||'high';
-const startup={moduleStartMs:performance.now(),stages:[],progress:[],firstLandscapeMs:null,readyMs:null};const stage=(name,start)=>startup.stages.push({name,ms:performance.now()-start,at:performance.now()});
+const startup={moduleStartMs:performance.now(),stages:[],firstLandscapeMs:null,readyMs:null};const stage=(name,start)=>startup.stages.push({name,ms:performance.now()-start,at:performance.now()});
 let storedRenderMode='auto';try{storedRenderMode=localStorage.getItem('microcosm.render-mode')||'auto';}catch{}
 const requestedRenderMode=params.get('render')||storedRenderMode;
 const world = $('#world');
 const viewport = { width: world.clientWidth, height: world.clientHeight };
 const renderQuality=createAdaptiveRendering({nativePixelRatio:devicePixelRatio,maxRatio:quality==='high'?1.5:1,mode:['auto','clear','smooth','record'].includes(requestedRenderMode)?requestedRenderMode:'auto',viewport,onRatio:applyRenderRatio,onMode:applyRenderBudget});
-const errors=[];function failure(message){errors.push(message);$('#loading')?.remove();$('#failure').textContent='景观启动失败：'+message;$('#failure').classList.remove('hidden');}window.addEventListener('error',e=>failure(e.message));window.addEventListener('unhandledrejection',e=>failure(e.reason?.message||String(e.reason)));
-async function loading(value,label){const el=$('#loading-progress');if(el)el.value=value;const percent=$('#loading-percent');if(percent)percent.textContent=value+'%';const phase=$('#loading-stage');if(phase)phase.textContent=label;startup.progress.push({value,label,at:performance.now()});await new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));}
-await loading(5,'准备山居');
+const errors=[];function failure(message){errors.push(message);$('#failure').textContent='景观启动失败：'+message;$('#failure').classList.remove('hidden');}window.addEventListener('error',e=>failure(e.message));window.addEventListener('unhandledrejection',e=>failure(e.reason?.message||String(e.reason)));
+const nextPaint = () => new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+await nextPaint();
 const state={time:0,season:0,snow:0,wetness:0,temperature:15,lapseRate:2.2,wind:new THREE.Vector2(.85,.25).normalize(),windStrength:ENVIRONMENT_LIGHTING.baseWind,windPaused:false,daylight:1,rain:0,fog:0,hour:15,cycle:false,dayCycle:false,paused:params.has('paused'),sunDirection:new THREE.Vector3(-.6,1,.4).normalize(),cloudShadows:[],eventCounts:{cloudGrabs:0,lightning:0,windStrokes:0}};
 let tapCandidate=null;let activePointerId=null,pointerOwner=null;const touchPoints=new Map(),orbitPointers=new Map();let replayTouch=false;const hoverRay=new THREE.Raycaster(),hoverNdc=new THREE.Vector2();
 let stormCloudCoverage=0,lastManualStrike=-99;const weatherSelection=createWeatherSelection();state.weatherSelection=weatherSelection;
@@ -43,20 +43,18 @@ const camera=new THREE.PerspectiveCamera(35,viewport.width / viewport.height,.1,
 const pmrem=new THREE.PMREMGenerator(renderer),environment=pmrem.fromScene(new RoomEnvironment(),.025);scene.environment=environment.texture;scene.environmentIntensity=.13;pmrem.dispose();
 const hemi=new THREE.HemisphereLight(0xc4d6df,0x4a3b27,.65);scene.add(hemi);const sun=new THREE.DirectionalLight(0xffe0ac,3.0);sun.position.set(-8,11,6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-8.5,right:8.5,top:9,bottom:-8,near:.1,far:35});sun.shadow.normalBias=ENVIRONMENT_LIGHTING.shadowNormalBias;sun.shadow.bias=-.00013;sun.shadow.radius=ENVIRONMENT_LIGHTING.shadowRadius;sun.shadow.intensity=ENVIRONMENT_LIGHTING.shadowStrength;scene.add(sun);const moon=new THREE.DirectionalLight(0x94b9ed,.12);moon.position.set(-3,8,-4);scene.add(moon);const lightning=new THREE.PointLight(0xc2ddff,0,26,1.6);lightning.position.set(0,7,0);scene.add(lightning);const lightningFill=new THREE.DirectionalLight(0xdceaff,0);lightningFill.position.set(-2,10,3);scene.add(lightningFill,lightningFill.target);
 const backdrop=createSceneBackdrop(scene,{renderer});
-await loading(12,'整理山形');
-let buildAt=performance.now();const field=createEnvironmentField(),terrain=createTerrain(scene,{seed,quality,field});field.setTerrain(terrain);stage('terrain',buildAt);await loading(25,'安放山居');
+
+let buildAt=performance.now();const field=createEnvironmentField(),terrain=createTerrain(scene,{seed,quality,field});field.setTerrain(terrain);stage('terrain',buildAt);
 buildAt=performance.now();const props=createProps(scene,{terrain,seed});stage('props',buildAt);
 const audio=createSceneAudio({camera,button:$('#sound-toggle'),volumeInput:$('#sound-volume')});
 const weather=createWeather(scene,camera,renderer,{seed,quality,field,terrain,chimney:props.chimney,onCloudGrab(){state.eventCounts.cloudGrabs++;},onLightning(event){state.eventCounts.lightning++;audio.thunder(event);},onWind(p,d,s){if(state.windPaused)setWindPaused(false);state.eventCounts.windStrokes++;field.addWind(p,d,s);state.wind.copy(d);windPulse=Math.min(1,s+.25);}});
-// All geometry and shaders stay covered until a complete valid frame exists.
-await loading(36,'栽种林木与草甸');
-buildAt=performance.now();const vegetation=createVegetation(scene,{terrain,field,seed,quality});terrain.setRootSources?.(vegetation.wind?.sites||[]);stage('vegetation',buildAt);const vegetationPalette=installVegetationPalette(vegetation.group);await loading(70,'铺设溪流与池塘');
+buildAt=performance.now();const vegetation=createVegetation(scene,{terrain,field,seed,quality});terrain.setRootSources?.(vegetation.wind?.sites||[]);stage('vegetation',buildAt);const vegetationPalette=installVegetationPalette(vegetation.group);
 
 const pondPalette=installVegetationPalette(props.group.getObjectByName('Lotus and small hardy waterlily in sheltered pond pockets')||new THREE.Group());
 const water=createWater(scene,terrain.lake,{renderer,camera,terrain,field,bedHeightAt:props.pondBed.heightAt,receivers:[terrain.group,props.pondBed.group,props.fish.group]});water.setInputOccluders([props.group,vegetation.group]);
 vegetation.setLakeSurfaceSampler((x,z,time,wind)=>water.sampleSurfaceHeight(x,z,time,wind),(x,z)=>water.compileSurfaceSampler(x,z));
 props.setLakeSurfaceSampler((x,z,time,wind)=>water.sampleSurfaceHeight(x,z,time,wind));
-await loading(82,'唤醒飞鸟与游鱼');
+
 const fauna=createSceneFauna({terrain,vegetation,field,props,seed});scene.add(fauna.group);
 fauna.setLakeSurfaceSampler((x,z,time,wind)=>water.sampleSurfaceHeight(x,z,time,wind));
 
@@ -185,17 +183,7 @@ fullscreenButton.onclick = async () => {
     console.warn('当前页面无法进入全屏', error);
   }
 };
-const dockButtons = $$('[data-panel]');
-dockButtons.forEach(button => {
-  button.onclick = () => {
-    for (const item of dockButtons) {
-      const active = item === button;
-      item.setAttribute('aria-pressed', String(active));
-      document.getElementById(item.dataset.panel).classList.toggle('dock-active', active);
-    }
-  };
-});
-window.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.repeat||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName)||e.target?.isContentEditable)return;if(e.key.toLowerCase()==='h')document.body.classList.toggle('ui-hidden');if(e.key==='Escape')release({});});
+window.addEventListener('keydown',e=>{if(e.ctrlKey||e.metaKey||e.altKey||e.repeat||['INPUT','TEXTAREA','SELECT'].includes(e.target?.tagName)||e.target?.isContentEditable)return;if(e.key.toLowerCase()==='h'){document.body.classList.toggle('ui-hidden');resize();}if(e.key==='Escape')release({});});
 function resetView(){cancelOrbit();camera.position.set(8,10,20.8);controls.target.set(0,1.55,-.35);stopCameraInertia();controls.update();}
 function setWindPaused(value){state.windPaused=Boolean(value);if(state.windPaused){windPulse=0;state.windStrength=0;field.clearWind();weather.clearWind?.();}else state.windStrength=ENVIRONMENT_LIGHTING.baseWind;const button=$('#wind-toggle');button.setAttribute('aria-pressed',String(state.windPaused));(button.querySelector('span')||button).textContent=state.windPaused?'恢复风':'暂停风';}
 function resetEffects(){tapCandidate=null;cancelOrbit();release({});touchPoints.clear();weather.reset?.();field.reset();water.reset?.();audio.resetEffects?.();
@@ -211,12 +199,20 @@ function resize() {
   viewport.width = width;
   viewport.height = height;
   renderQuality.resize(devicePixelRatio, performance.now(), viewport);
-  camera.aspect = width / height;
-  // Preserve room for the front corner of the terrain on narrow canvases.
-  const horizontalHalfFov = THREE.MathUtils.degToRad(39) / 2;
-  const verticalFov = 2 * Math.atan(Math.tan(horizontalHalfFov) / camera.aspect);
-  camera.fov = Math.max(35, THREE.MathUtils.radToDeg(verticalFov));
-  camera.updateProjectionMatrix();
+  const header = $('.scene-header').getBoundingClientRect();
+  const dock = $('.control-dock').getBoundingClientRect();
+  // Reserve composition space for the controls while drawing the scene edge to edge.
+  const sideDock = dock.width > 0 && dock.left > width * .5;
+  const top = header.bottom;
+  const right = sideDock ? dock.left : width;
+  const bottom = dock.width > 0 && !sideDock ? dock.top : height;
+  const framingHeight = Math.max(1, bottom - top);
+  const verticalSlope = Math.tan(THREE.MathUtils.degToRad(35) / 2);
+  const horizontalSlope = Math.tan(THREE.MathUtils.degToRad(39) / 2);
+  camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(
+    Math.max(verticalSlope / framingHeight, horizontalSlope / right) * height
+  ));
+  camera.setViewOffset(width, height, (width - right) / 2, (height - top - bottom) / 2, width, height);
   renderer.setSize(width, height, false);
   composer.setSize(width, height);
   water.resize?.(width, height);
@@ -243,7 +239,7 @@ function render(now){requestAnimationFrame(render);if(document.hidden){lastFrame
  }
  const realDt=Math.max(0,(now-lastFrame)/1000),dt=Math.min(.05,realDt);lastFrame=now;wallMs=wallMs*.95+realDt*1000*.05;renderQuality.sample(realDt*1000,now);renderer.info.reset();update(state.paused?0:dt);updateRenderDetail();weather.prepareRender?.();renderScene();frames++;if(frames===1){startup.readyMs=performance.now();setTimeout(()=>audio.autoStart(),0);}if(frames%5===0){syncCycles();const hour=Math.floor(state.hour),min=Math.floor(state.hour%1*60);$('#clock-label').textContent=String(hour).padStart(2,'0')+':'+String(min).padStart(2,'0');$('#weather-label').textContent=['春日','盛夏','深秋','冬日'][Math.round(state.season)%4]+' · '+(state.temperature<0?'雪':state.rain>.3?'雨':state.daylight<.2?'夜':'晴');}}
 window.__MICROCOSM={startup,renderQuality,renderBudget,scenePass,backdrop,resetEffects,setWindPaused,state,scene,camera,controls,renderer,composer,lighting:{sun,hemi,moon,lightning,lightningFill},audio,vegetationPalette,pondPalette,terrain,world:terrain,vegetation,props,water,fauna,weather,field,daylightHandle,errors,setSeason:selectSeason,setSeasonCycle,setTool,setWeather,setHour:h=>state.hour=h,setPost(enabled){postAllowed=enabled;bloom.enabled=enabled;},simulate(seconds){const n=Math.round(seconds*30),paused=state.paused;state.paused=false;for(let i=0;i<n;i++)update(1/30);state.paused=paused;},stats:()=>({frames,frameTimeMs:wallMs,renderQuality:renderQuality.stats,render:{...renderer.info.render},memory:{...renderer.info.memory},terrain:terrain.stats,vegetation:vegetation.stats,props:props.stats,water:water.stats,fauna:fauna.stats,weather:weather.stats,audio:audio.stats,input:{tool,pointerOwner,activePointerId,orbitEnabled:controls.enableRotate},field:field.stats,route:'INDEPENDENT_IMPLEMENTATION'}),fixed({season=0,hour=15,time=0,rain=0,fog=0}={}){state.paused=true;state.cycle=false;seasonTarget=state.season=season;state.hour=hour;state.time=time;state.rain=rainTarget=rain;state.fog=fogTarget=fog;syncCycles();}};
-syncWeather();syncCycles();resize();update(0);await loading(90,'准备云水与光影');
+syncWeather();syncCycles();resize();update(0);await nextPaint();
 if(renderer.compileAsync)await renderer.compileAsync(scene,camera);else renderer.compile(scene,camera);
-await loading(97,'完成景观');weather.prepareRender?.();renderScene();startup.firstLandscapeMs=performance.now();
-await loading(100,'就绪');$('#loading')?.remove();startup.coverRemovedMs=performance.now();lastFrame=performance.now();renderQuality.ready(lastFrame);requestAnimationFrame(render);
+weather.prepareRender?.();renderScene();startup.firstLandscapeMs=performance.now();
+world.classList.add('scene-ready');lastFrame=performance.now();renderQuality.ready(lastFrame);requestAnimationFrame(render);

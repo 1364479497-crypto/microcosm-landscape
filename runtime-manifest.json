@@ -1,11 +1,11 @@
 {
-  "appVersion": "2.3.12",
+  "appVersion": "2.3.13",
   "threeVersion": "0.187.0",
   "backend": "WebGL2",
   "files": {
     "index.html": {
-      "sha256": "e73c130c78b52794dcf20e3005903c2dcfa4de67816dcbf365ef1350d46cd6e7",
-      "bytes": 12210
+      "sha256": "c19fc08704da267fbb302ee0788400e37404b1fcbe7e0771354d9d6ad6aaaa9c",
+      "bytes": 11265
     },
     "src/water-surface.js": {
       "sha256": "c84c13c2d3f87b515803ce561f7cba43d93ca1be58c44a1438660310aab4f2d3",
@@ -136,8 +136,8 @@
       "bytes": 7229
     },
     "src/main.js": {
-      "sha256": "3f48937a6b2b61198db3eab20cc33ecf0b8afc8a4fe2bea5c93ae646c43a9c1e",
-      "bytes": 30685
+      "sha256": "32d534822a394e89759f2d284a71d6f4289b10598ce6e0434909cf5038bc1852",
+      "bytes": 30151
     },
     "src/terrain-field.js": {
       "sha256": "8cd25f9387be064ce5bdd6865f19f936176f33cca6ea2d8054825658786b0e4c",
@@ -164,8 +164,8 @@
       "bytes": 2348
     },
     "src/style.css": {
-      "sha256": "104f50a941ca14ec27dc8b675eb4002593916ebb6492f18c51bc062bf01092ff",
-      "bytes": 21753
+      "sha256": "65dd32b0f3fb77b4361ad47e461b24a2f7212a35366b34607e15b7b3726a3253",
+      "bytes": 20485
     },
     "src/tree-growth.js": {
       "sha256": "c51b8e9ea9defe3eb9cd03588a061bae37fe664a00288861be328117c8a22ca4",
@@ -376,8 +376,20 @@
       "bytes": 15002
     },
     "package.json": {
-      "sha256": "35cfbb9034aa4cfc9da98ab39bbcfea994b25137b42ba9eac86403b57fd22092",
+      "sha256": "66efe3e9fb270b7bc9e7b25ad5d63c1e737356f470565ff74680bb392857d0c1",
       "bytes": 264
+    },
+    "assets/opening-portrait.webp": {
+      "sha256": "385c2d0d7703a14c59f9bd68781610d44becdc72761304391894f5af5c6b5cd9",
+      "bytes": 29368
+    },
+    "assets/opening-phone-landscape.webp": {
+      "sha256": "573c6e2628b5040fc6d74183670c25d31e0a60f60e69553d39874c4cf402aa81",
+      "bytes": 27952
+    },
+    "assets/opening-landscape.webp": {
+      "sha256": "c9dd9f5e93c0e800a2402b6ed5072fe838ae016d06581176a5fc86a0f17e57d3",
+      "bytes": 148894
     }
   },
   "previousIndependentReview": {
