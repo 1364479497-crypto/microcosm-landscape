@@ -175,6 +175,12 @@ $$('[data-weather]').forEach(b=>b.onclick=()=>setWeather(b.dataset.weather,!weat
 $('#reset').onclick=resetView;$('#wind-toggle').onclick=()=>setWindPaused(!state.windPaused);$('#reset-effects').onclick=resetEffects;$('#capture').onclick=()=>{renderScene();const a=document.createElement('a');a.download='世外桃源.png';a.href=renderer.domElement.toDataURL();a.click();};
 const fullscreenButton = $('#fullscreen');
 fullscreenButton.hidden = !document.fullscreenEnabled;
+document.addEventListener('fullscreenchange', () => {
+  const label = document.fullscreenElement ? '退出全屏' : '全屏';
+  fullscreenButton.setAttribute('aria-label', label);
+  fullscreenButton.title = label;
+  fullscreenButton.querySelector('span').textContent = label;
+});
 fullscreenButton.onclick = async () => {
   try {
     if (document.fullscreenElement) await document.exitFullscreen();
@@ -202,7 +208,7 @@ function resize() {
   const header = $('.scene-header').getBoundingClientRect();
   const dock = $('.control-dock').getBoundingClientRect();
   // Reserve composition space for the controls while drawing the scene edge to edge.
-  const sideDock = dock.width > 0 && dock.left > width * .5;
+  const sideDock = dock.width > 0 && dock.left > header.left + 1;
   const top = header.bottom;
   const right = sideDock ? dock.left : width;
   const bottom = dock.width > 0 && !sideDock ? dock.top : height;
